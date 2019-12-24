@@ -16,5 +16,6 @@ public interface BluetoothUtil {
     void startScanning();
     BluetoothGattCharacteristic getCharacteristic(String onewheelCharacteristicLightingMode);
     void writeCharacteristic(BluetoothGattCharacteristic lc);
-    int getStatusMode();
+    int getIsUnlocked();
+    boolean isPeriodicChallengeRequired();
 }

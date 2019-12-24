@@ -173,8 +173,13 @@ public class BluetoothUtilMockImpl implements BluetoothUtil{
     }
 
     @Override
-    public int getStatusMode() {
+    public int getIsUnlocked() {
         return statusMode;
+    }
+
+    @Override
+    public boolean isPeriodicChallengeRequired() {
+        return isGemini();
     }
 
     private void updateLog(String s) {

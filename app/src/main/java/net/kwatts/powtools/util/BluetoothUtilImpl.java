@@ -26,7 +26,6 @@ import net.kwatts.powtools.BuildConfig;
 import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
-import net.kwatts.powtools.model.OWDevice.DeviceCharacteristic;
 import net.kwatts.powtools.model.Session;
 
 import java.nio.ByteBuffer;
@@ -70,12 +69,10 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     private boolean mScanning;
     private long mDisconnected_time;
     private int mRetryCount = 0;
-    private int statusMode = 0;
+    private int isUnlocked = 0;
 
     private Handler handler;
     private static int periodicSchedulerCount = 0;
-
-    public static boolean isGemini = false;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -96,6 +93,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     }
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             Timber.d( "Bluetooth connection state change: address=" + gatt.getDevice().getAddress()+ " status=" + status + " newState=" + newState);
@@ -106,7 +104,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                 Battery.initStateTwoX(App.INSTANCE.getSharedPreferences());
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
-                statusMode = 0;
+                isUnlocked = 0;
                 BluetoothUtilImpl.isOWFound.set("false");
                 if (gatt.getDevice().getAddress().equals(mOWDevice.deviceMacAddress.get())) {
                     BluetoothUtilImpl bluetoothUtilImpl = BluetoothUtilImpl.this;
@@ -225,7 +223,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             Timber.d( "BluetoothGattCallback.onCharacteristicRead: CharacteristicUuid=" +
                     characteristic_uuid +
                     ",status=" + status +
-                    ",isGemini=" + isGemini);
+                    ",isGemini=" + isGemini());
             if (characteristicReadQueue.size() > 0) {
                 characteristicReadQueue.remove();
             }
@@ -244,7 +242,6 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                 IUnlocker unlocker = session.getUnlocker();
                 if (firmwareVersion >= 4034) {
                     Timber.d("It's Gemini!");
-                    isGemini = true;
                     Timber.d("Stability Step 2.1: JUST write the descriptor for the Serial Read characteristic to Enable notifications");
                     BluetoothGattCharacteristic gC = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));
                     gatt.setCharacteristicNotification(gC, true);
@@ -254,7 +251,6 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                     gatt.writeDescriptor(descriptor);
                 } else {
                     Timber.d("It's before Gemini, likely Andromeda - calling read and notify characteristics");
-                    isGemini = false;
                     whenActuallyConnected();
                 }
             } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
@@ -311,7 +307,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             BluetoothGatt bluetoothGatt = gatt;
             BluetoothGattCharacteristic bluetoothGattCharacteristic = c;
 
-            if (isGemini && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {                try {
+            if (isGemini() && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {                try {
                     Timber.d("Setting up inkey!");
                     inkey.write(c.getValue());
                     if (inkey.toByteArray().length >= 20 && sendKey) {
@@ -374,7 +370,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             // Step 5: In OnCharacteristicWrite, if isGemini & characteristic is Serial Write, NOW setNotify
             // and read all the characteristics you want. its also only now that I start the
             // repeated handshake clock thing but I don't think it really matters, this all happens pretty quick.
-            if (isGemini && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialWrite))) {
+            if (isGemini() && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialWrite))) {
                 Timber.d("Step 5: Gemini and serial write, kicking off all the read and notifies...");
                 whenActuallyConnected();
             }
@@ -385,7 +381,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             Timber.i( "onDescriptorWrite: " + status + ",descriptor=" + descriptor.getUuid().toString() +
                     ",descriptor_characteristic=" + descriptor.getCharacteristic().getUuid().toString());
 
-            if (isGemini && descriptor.getCharacteristic().getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead)) {
+            if (isGemini() && descriptor.getCharacteristic().getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead)) {
                 Timber.d("Stability Step 3: if isGemini and the characteristic descriptor that was written was Serial Write" +
                         "then trigger the 20 byte input key over multiple serial ble notification stream by writing the firmware version onto itself");
                 gatt.writeCharacteristic(owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
@@ -649,7 +645,17 @@ public class BluetoothUtilImpl implements BluetoothUtil{
 
     @Override
     public boolean isGemini() {
-        return this.isGemini;
+        boolean isGemini = false;
+        Session instance = Session.getInstance();
+        if(instance != null)
+        {
+            IUnlocker unlocker = instance.getUnlocker();
+            if(unlocker != null)
+            {
+                isGemini = unlocker.isGemini();
+            }
+        }
+        return isGemini;
     }
 
     @Override
@@ -708,7 +714,8 @@ public class BluetoothUtilImpl implements BluetoothUtil{
         inkey.reset();
         isOWFound.set("false");
         this.sendKey = true;
-        statusMode = 0;
+        App.INSTANCE.resetSession();
+        isUnlocked = 0;
     }
 
     @Override
@@ -722,8 +729,13 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     }
 
     @Override
-    public int getStatusMode() {
-        return statusMode;
+    public int getIsUnlocked() {
+        return isUnlocked;
+    }
+
+    @Override
+    public boolean isPeriodicChallengeRequired() {
+        return isGemini();
     }
 
     private void periodicCharacteristics() {
@@ -731,14 +743,14 @@ public class BluetoothUtilImpl implements BluetoothUtil{
 
         periodicSchedulerCount++;
 
-        if (statusMode == 2) {
+        if (isUnlocked == 2) {
             walkReadQueue(1);
         }
 
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (statusMode == 2) {
+                if (isUnlocked == 2) {
                     walkReadQueue(1);
                 }
                 if (periodicSchedulerCount == 1) {
@@ -802,7 +814,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
         walkReadQueue(0);
         walkReadQueue(1);
 
-        statusMode = 2;
+        isUnlocked = 2;
 
      /*
         for (DeviceCharacteristic dc : mOWDevice.getNotifyCharacteristics()) {

@@ -7,10 +7,7 @@ import android.content.SharedPreferences;
 import android.databinding.DataBindingUtil;
 import android.databinding.Observable;
 import android.graphics.Typeface;
-import android.graphics.Color;
 import android.location.Address;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,7 +19,6 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
 import android.content.pm.PackageManager;
-import android.util.SparseBooleanArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -236,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements
 
         handler.postDelayed(new Runnable() {
             public void run() {
-                if (getBluetoothUtil().isGemini() && mOWDevice != null && getBluetoothUtil().getStatusMode() == 2) {
+                if (getBluetoothUtil().isPeriodicChallengeRequired() && mOWDevice != null && getBluetoothUtil().getIsUnlocked() == 2) {
                     mOWDevice.sendKeyChallengeForGemini(getBluetoothUtil());
                 }
                 if (periodicChallengeCount == 1) {

@@ -12,7 +12,7 @@ public class Session {
         return getInstance();
     }
 
-    private static Session getInstance() {
+    public static Session getInstance() {
         return App.INSTANCE.session;
     }
 
