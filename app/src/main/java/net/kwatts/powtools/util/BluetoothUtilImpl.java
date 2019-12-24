@@ -200,13 +200,6 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                  Timber.d( "Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
             }
 
-            //else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicUartSerialRead)) {
-            //    Timber.d("Got OnewheelCharacteristicUartSerialRead, calling unlockKeyGemini! ");
-             //   unlockKeyGemini(gatt, c.getValue());
-           // }
-
-
-
             if (BuildConfig.DEBUG) {
                 byte[] v_bytes = c.getValue();
                 StringBuilder sb = new StringBuilder();
@@ -329,12 +322,6 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                         "then trigger the 20 byte input key over multiple serial ble notification stream by writing the firmware version onto itself");
                 gatt.writeCharacteristic(owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
             }
-
-            //DeviceCharacteristic dc = mOWDevice.characteristics.get(descriptor.getCharacteristic().getUuid().toString());
-            //if (dc != null && (dc.state == 0 || dc.state == 1)) {
-            //    gatt.setCharacteristicNotification(  owGatService.getCharacteristic(UUID.fromString(dc.uuid.get())), true);
-            //
-            // }
 
             if (descriptorWriteQueue.size() > 0) {
                 descriptorWriteQueue.remove();
