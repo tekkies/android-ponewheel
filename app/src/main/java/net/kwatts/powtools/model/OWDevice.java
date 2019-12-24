@@ -404,9 +404,7 @@ gatttool --device=D0:39:72:BE:0A:32 --char-write-req --value=7500 --handle=0x004
         if(dev_uuid != null && dev_uuid.equals(incomingUuid)) {
             switch(dev_uuid) {
                 case OnewheelCharacteristicHardwareRevision:
-                    int hver = unsignedShort(incomingValue);
-                    dc.value.set(Integer.toString(hver));
-                    Battery.setHardware(hver);
+                    processHardwareRevision(incomingValue, dc);
                     break;
                 case OnewheelCharacteristicFirmwareRevision:
                     int fver = unsignedShort(incomingValue);
@@ -482,6 +480,13 @@ gatttool --device=D0:39:72:BE:0A:32 --char-write-req --value=7500 --handle=0x004
             }
         }
 
+    }
+
+    private void processHardwareRevision(byte[] incomingValue, DeviceCharacteristic dc) {
+        int hver = unsignedShort(incomingValue);
+        HardwareRevision hardwareRevision = new HardwareRevision(hver);
+        dc.value.set(hardwareRevision.toString());
+        Battery.setHardware(hver);
     }
 
     public void processBatteryVoltage(byte[] incomingValue, DeviceCharacteristic dc) {
