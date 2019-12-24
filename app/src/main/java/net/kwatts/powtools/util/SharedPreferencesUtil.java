@@ -31,6 +31,7 @@ public class SharedPreferencesUtil implements net.kwatts.powtools.util.SharedPre
     public static final String SPEED_ALERT = "SPEED_ALERT";
     private static final String CHARGE_ALERT_ENABLED = "CHARGE_ALERT_ENABLED";
     private static final String SPEED_ALERT_ENABLED = "SPEED_ALERT_ENABLED";
+    private static final String V3_UNLOCK_KEYS = "v3_unlock_keys";
 
     private SharedPreferences androidSharedPreferences;
 
@@ -191,4 +192,7 @@ public class SharedPreferencesUtil implements net.kwatts.powtools.util.SharedPre
         return androidSharedPreferences.getBoolean(SPEED_ALERT_ENABLED, false);
     }
 
+    public String getV3UnlockKeys() {
+        return androidSharedPreferences.getString(V3_UNLOCK_KEYS, "");
+    }
 }

@@ -100,6 +100,13 @@
         android:entries="@array/remain_method"
         android:entryValues="@array/remain_method_data"
         android:defaultValue="default" />
+    <EditTextPreference
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:defaultValue="38:81:D7:00:00:00=098e56...,38:81:...=098e56..."
+        android:key="v3_unlock_keys"
+        android:summary="Pairs of mac address and unlock keys for each of your boards. (e.g. 38:81:D7:00:00:00=098e56...,38:81:...=098e56...)."
+        android:title="Firmware 4142+ unlock keys" />
 
     <!-- <ListPreference     android:title="Download Details"
                         android:summary="Select the kind of data that you would like to download"
