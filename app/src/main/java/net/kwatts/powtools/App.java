@@ -10,6 +10,7 @@ import com.facebook.stetho.Stetho;
 
 import net.kwatts.powtools.database.DBExecutor;
 import net.kwatts.powtools.database.Database;
+import net.kwatts.powtools.model.Session;
 import net.kwatts.powtools.util.SharedPreferencesUtil;
 
 import java.util.concurrent.ExecutorService;
@@ -30,7 +31,7 @@ public class App extends Application {
     PowerManager.WakeLock wakeLock;
     public Database db;
     public ExecutorService dbExecutor;
-
+    public Session session;
 
     public App() {
         INSTANCE = this;
@@ -88,6 +89,10 @@ public class App extends Application {
         }
     }
 
+    public void resetSession() {
+        session = null;
+    }
+
     public static final class DebugTree extends Timber.DebugTree {
         @Override
         protected void log(int priority, String tag, String message, Throwable t) {
@@ -105,5 +110,6 @@ public class App extends Application {
                     element.getMethodName(),
                     element.getLineNumber());
         }
+
     }
 }

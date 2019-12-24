@@ -24,8 +24,11 @@ import android.databinding.ObservableField;
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.BuildConfig;
 import net.kwatts.powtools.MainActivity;
+import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.OWDevice.DeviceCharacteristic;
+import net.kwatts.powtools.model.Session;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -140,6 +143,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             String deviceMacName = mGatt.getDevice().getName();
             mOWDevice.deviceMacAddress.set(deviceMacAddress);
             mOWDevice.deviceMacName.set(deviceMacName);
+            App.INSTANCE.resetSession();
             App.INSTANCE.getSharedPreferences().saveMacAddress(
                     mOWDevice.deviceMacAddress.get(),
                     mOWDevice.deviceMacName.get()
@@ -235,7 +239,10 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             // or Gemini later on.
             if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicFirmwareRevision)) {
                 Timber.d("We have the firmware revision! Checking version.");
-                if (unsignedShort(c.getValue()) >= 4034) {
+                int firmwareVersion = unsignedShort(c.getValue());
+                Session session = Session.Create(firmwareVersion);
+                IUnlocker unlocker = session.getUnlocker();
+                if (firmwareVersion >= 4034) {
                     Timber.d("It's Gemini!");
                     isGemini = true;
                     Timber.d("Stability Step 2.1: JUST write the descriptor for the Serial Read characteristic to Enable notifications");
