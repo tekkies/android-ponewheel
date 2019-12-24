@@ -92,6 +92,11 @@ public class BluetoothUtilImpl implements BluetoothUtil{
         periodicCharacteristics();
     }
 
+    public BluetoothUtil getInstance()
+    {
+        return this;
+    }
+
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
 
         @Override
@@ -183,19 +188,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                 int firmwareVersion = unsignedShort(c.getValue());
                 Session session = Session.Create(firmwareVersion);
                 IUnlocker unlocker = session.getUnlocker();
-                if (firmwareVersion >= 4034) {
-                    Timber.d("It's Gemini!");
-                    Timber.d("Stability Step 2.1: JUST write the descriptor for the Serial Read characteristic to Enable notifications");
-                    BluetoothGattCharacteristic gC = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));
-                    gatt.setCharacteristicNotification(gC, true);
-                    Timber.d("and set notify to true with gatt...");
-                    BluetoothGattDescriptor descriptor = gC.getDescriptor(UUID.fromString(OWDevice.OnewheelConfigUUID));
-                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                    gatt.writeDescriptor(descriptor);
-                } else {
-                    Timber.d("It's before Gemini, likely Andromeda - calling read and notify characteristics");
-                    whenActuallyConnected();
-                }
+                unlocker.start(getInstance(), owGatService, gatt);
             } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
                  Timber.d( "Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
             }

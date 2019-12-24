@@ -182,6 +182,11 @@ public class BluetoothUtilMockImpl implements BluetoothUtil{
         return isGemini();
     }
 
+    @Override
+    public void whenActuallyConnected() {
+
+    }
+
     private void updateLog(String s) {
         mainActivity.updateLog("mock: " + s);
     }

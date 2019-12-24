@@ -18,4 +18,5 @@ public interface BluetoothUtil {
     void writeCharacteristic(BluetoothGattCharacteristic lc);
     int getIsUnlocked();
     boolean isPeriodicChallengeRequired();
+    void whenActuallyConnected();
 }
