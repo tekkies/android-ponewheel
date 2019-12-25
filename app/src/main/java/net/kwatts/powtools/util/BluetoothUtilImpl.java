@@ -27,6 +27,7 @@ import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
+import net.kwatts.powtools.model.UnlockerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -154,16 +155,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             );
             scanLeDevice(false);
 
-            // Stability updates per https://github.com/ponewheel/android-ponewheel/issues/86#issuecomment-460033659
-            // Step 1: In OnServicesDiscovered, JUST read the firmware version.
-            Timber.d("Stability Step 1: Only reading the firmware version!");
-            //new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            handler.postDelayed(new Runnable() {
-                public void run() {
-                    BluetoothUtilImpl.this.mGatt.readCharacteristic(BluetoothUtilImpl.this.owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
-                }
-            }, 500);
-
+            UnlockerFactory.Begin(handler, mGatt, owGatService);
         }
 
         @Override
