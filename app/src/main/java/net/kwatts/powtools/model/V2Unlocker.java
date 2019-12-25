@@ -18,7 +18,7 @@ class V2Unlocker implements IUnlocker {
     }
 
     @Override
-    public void start(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt) {
+    public void onCharacteristicRead(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt) {
         Timber.d("It's Gemini!");
         Timber.d("Stability Step 2.1: JUST write the descriptor for the Serial Read characteristic to Enable notifications");
         BluetoothGattCharacteristic gC = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));

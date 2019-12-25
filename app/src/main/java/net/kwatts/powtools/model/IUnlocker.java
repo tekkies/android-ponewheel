@@ -8,5 +8,5 @@ import net.kwatts.powtools.util.BluetoothUtil;
 public interface IUnlocker {
     boolean isGemini();
 
-    void start(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt);
+    void onCharacteristicRead(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt);
 }

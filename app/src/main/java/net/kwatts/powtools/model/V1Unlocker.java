@@ -14,7 +14,7 @@ class V1Unlocker implements IUnlocker {
     }
 
     @Override
-    public void start(BluetoothUtil bluetoothUtil, BluetoothGattService owGatService, BluetoothGatt gatt) {
+    public void onCharacteristicRead(BluetoothUtil bluetoothUtil, BluetoothGattService owGatService, BluetoothGatt gatt) {
         Timber.d("It's before Gemini, likely Andromeda - calling read and notify characteristics");
         bluetoothUtil.whenActuallyConnected();
     }

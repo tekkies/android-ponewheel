@@ -188,7 +188,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                 int firmwareVersion = unsignedShort(c.getValue());
                 Session session = Session.Create(firmwareVersion);
                 IUnlocker unlocker = session.getUnlocker();
-                unlocker.start(getInstance(), owGatService, gatt);
+                unlocker.onCharacteristicRead(getInstance(), owGatService, gatt);
             } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
                  Timber.d( "Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
             }
@@ -450,7 +450,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                 } else {
                     Timber.i("Waiting for 5 seconds until trying to connect to OW again.");
                     TimeUnit.SECONDS.sleep(5);
-                    Timber.i("Trying to connect to OW at " + mOWDevice.deviceMacAddress.get());
+                    Timber.i("Trying to connect to OW at %s (retry %d)", mOWDevice.deviceMacAddress.get(), mRetryCount);
                     //BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(mOWDevice.deviceMacAddress.get());
                     //connectToDevice(device);
                     gatt.connect();

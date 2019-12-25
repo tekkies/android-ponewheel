@@ -27,14 +27,13 @@ class V3Unlocker implements IUnlocker {
     }
 
     @Override
-    public void start(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt) {
+    public void onCharacteristicRead(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt) {
         String key = lookupKey(gatt);
         if(IsKeySensible(key)) {
             sendTheKeyDelayed(owGatService, gatt, key);
         } else {
             Timber.w("Key '%s' does not look right", key);
         }
-
     }
 
     private String lookupKey(BluetoothGatt gatt) {
