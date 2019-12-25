@@ -29,7 +29,6 @@ import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
 import net.kwatts.powtools.model.UnlockerFactory;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,10 +38,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.security.MessageDigest;
-import java.io.ByteArrayOutputStream;
-import java.io.ByteArrayInputStream;
-import java.security.DigestInputStream;
 
 import timber.log.Timber;
 
@@ -154,7 +149,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             );
             scanLeDevice(false);
 
-            UnlockerFactory.Begin(handler, mGatt, owGatService);
+            UnlockerFactory.requestFirmwareVersion(handler, mGatt, owGatService);
         }
 
         @Override

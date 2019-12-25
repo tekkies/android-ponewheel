@@ -28,7 +28,7 @@ public class UnlockerFactory {
         return unlocker;
     }
 
-    public static void Begin(Handler handler, BluetoothGatt bluetoothGatt, BluetoothGattService bluetoothGattService) {
+    public static void requestFirmwareVersion(Handler handler, BluetoothGatt bluetoothGatt, BluetoothGattService bluetoothGattService) {
         // Stability updates per https://github.com/ponewheel/android-ponewheel/issues/86#issuecomment-460033659
         // Step 1: In OnServicesDiscovered, JUST read the firmware version.
         Timber.d("Stability Step 1: Only reading the firmware version!");
