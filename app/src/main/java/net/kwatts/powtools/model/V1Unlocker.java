@@ -30,4 +30,9 @@ class V1Unlocker implements IUnlocker {
     public void onCharacteristicWrite(BluetoothUtil instance, BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic) {
 
     }
+
+    @Override
+    public void onCharacteristicChanged(BluetoothGattCharacteristic c, BluetoothGattService owGatService, BluetoothGatt gatt) {
+
+    }
 }

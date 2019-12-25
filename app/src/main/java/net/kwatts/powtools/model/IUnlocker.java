@@ -15,4 +15,6 @@ public interface IUnlocker {
     void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor);
 
     void onCharacteristicWrite(BluetoothUtil instance, BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic);
+
+    void onCharacteristicChanged(BluetoothGattCharacteristic c, BluetoothGattService owGatService, BluetoothGatt gatt);
 }
