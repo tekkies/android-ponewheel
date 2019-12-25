@@ -247,7 +247,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             Timber.i( "onDescriptorWrite: " + status + ",descriptor=" + descriptor.getUuid().toString() +
                     ",descriptor_characteristic=" + descriptor.getCharacteristic().getUuid().toString());
 
-            unlocker.onDescriptorWrite(owGatService, gatt, descriptor);
+            unlocker.onDescriptorWrite(owGatService, gatt, descriptor, status);
 
             if (descriptorWriteQueue.size() > 0) {
                 descriptorWriteQueue.remove();

@@ -22,7 +22,7 @@ class V1Unlocker implements IUnlocker {
     }
 
     @Override
-    public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor) {
+    public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
 
     }
 

@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 
 import net.kwatts.powtools.util.BluetoothUtil;
-import net.kwatts.powtools.util.BluetoothUtilImpl;
 import net.kwatts.powtools.util.Util;
 
 import java.io.ByteArrayInputStream;
@@ -31,7 +30,6 @@ class V2Unlocker implements IUnlocker {
 
     @Override
     public void onCharacteristicRead(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt) {
-        Timber.d("It's Gemini!");
         Timber.d("Stability Step 2.1: JUST write the descriptor for the Serial Read characteristic to Enable notifications");
         BluetoothGattCharacteristic gC = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));
         gatt.setCharacteristicNotification(gC, true);
@@ -42,7 +40,7 @@ class V2Unlocker implements IUnlocker {
     }
 
     @Override
-    public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor) {
+    public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
         if (isGemini() && descriptor.getCharacteristic().getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead)) {
             Timber.d("Stability Step 3: if isGemini and the characteristic descriptor that was written was Serial Write" +
                     "then trigger the 20 byte input key over multiple serial ble notification stream by writing the firmware version onto itself");
