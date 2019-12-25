@@ -28,4 +28,13 @@ class V2Unlocker implements IUnlocker {
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         gatt.writeDescriptor(descriptor);
     }
+
+    @Override
+    public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor) {
+        if (isGemini() && descriptor.getCharacteristic().getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead)) {
+            Timber.d("Stability Step 3: if isGemini and the characteristic descriptor that was written was Serial Write" +
+                    "then trigger the 20 byte input key over multiple serial ble notification stream by writing the firmware version onto itself");
+            gatt.writeCharacteristic(owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
+        }
+    }
 }

@@ -70,6 +70,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     private long mDisconnected_time;
     private int mRetryCount = 0;
     private int isUnlocked = 0;
+    IUnlocker unlocker;
 
     private Handler handler;
     private static int periodicSchedulerCount = 0;
@@ -187,7 +188,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                 Timber.d("We have the firmware revision! Checking version.");
                 int firmwareVersion = unsignedShort(c.getValue());
                 Session session = Session.Create(firmwareVersion);
-                IUnlocker unlocker = session.getUnlocker();
+                unlocker = session.getUnlocker();
                 unlocker.onCharacteristicRead(getInstance(), owGatService, gatt);
             } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
                  Timber.d( "Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
@@ -310,11 +311,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             Timber.i( "onDescriptorWrite: " + status + ",descriptor=" + descriptor.getUuid().toString() +
                     ",descriptor_characteristic=" + descriptor.getCharacteristic().getUuid().toString());
 
-            if (isGemini() && descriptor.getCharacteristic().getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead)) {
-                Timber.d("Stability Step 3: if isGemini and the characteristic descriptor that was written was Serial Write" +
-                        "then trigger the 20 byte input key over multiple serial ble notification stream by writing the firmware version onto itself");
-                gatt.writeCharacteristic(owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
-            }
+            unlocker.onDescriptorWrite(owGatService, gatt, descriptor);
 
             if (descriptorWriteQueue.size() > 0) {
                 descriptorWriteQueue.remove();

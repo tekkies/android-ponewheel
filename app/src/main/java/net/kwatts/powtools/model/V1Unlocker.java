@@ -1,6 +1,7 @@
 package net.kwatts.powtools.model;
 
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 
 import net.kwatts.powtools.util.BluetoothUtil;
@@ -17,5 +18,10 @@ class V1Unlocker implements IUnlocker {
     public void onCharacteristicRead(BluetoothUtil bluetoothUtil, BluetoothGattService owGatService, BluetoothGatt gatt) {
         Timber.d("It's before Gemini, likely Andromeda - calling read and notify characteristics");
         bluetoothUtil.whenActuallyConnected();
+    }
+
+    @Override
+    public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor) {
+
     }
 }

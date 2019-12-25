@@ -2,6 +2,7 @@ package net.kwatts.powtools.model;
 
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.os.Handler;
 import android.os.Looper;
@@ -34,6 +35,11 @@ class V3Unlocker implements IUnlocker {
         } else {
             Timber.w("Key '%s' does not look right", key);
         }
+    }
+
+    @Override
+    public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor) {
+
     }
 
     private String lookupKey(BluetoothGatt gatt) {
