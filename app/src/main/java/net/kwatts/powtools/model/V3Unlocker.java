@@ -42,6 +42,11 @@ class V3Unlocker implements IUnlocker {
 
     }
 
+    @Override
+    public void onCharacteristicWrite(BluetoothUtil instance, BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic) {
+
+    }
+
     private String lookupKey(BluetoothGatt gatt) {
         String key = "";
         String address = gatt.getDevice().getAddress().replace(":", "").toLowerCase();

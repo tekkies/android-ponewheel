@@ -237,7 +237,8 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             BluetoothGatt bluetoothGatt = gatt;
             BluetoothGattCharacteristic bluetoothGattCharacteristic = c;
 
-            if (isGemini() && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {                try {
+            if (isGemini() && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {
+                try {
                     Timber.d("Setting up inkey!");
                     inkey.write(c.getValue());
                     if (inkey.toByteArray().length >= 20 && sendKey) {
@@ -295,15 +296,9 @@ public class BluetoothUtilImpl implements BluetoothUtil{
 
 
         @Override
-        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
-            Timber.i( "onCharacteristicWrite: " + status + ", CharacteristicUuid=" + c.getUuid().toString());
-            // Step 5: In OnCharacteristicWrite, if isGemini & characteristic is Serial Write, NOW setNotify
-            // and read all the characteristics you want. its also only now that I start the
-            // repeated handshake clock thing but I don't think it really matters, this all happens pretty quick.
-            if (isGemini() && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialWrite))) {
-                Timber.d("Step 5: Gemini and serial write, kicking off all the read and notifies...");
-                whenActuallyConnected();
-            }
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic, int status) {
+            Timber.i( "onCharacteristicWrite: " + status + ", CharacteristicUuid=" + bluetoothGattCharacteristic.getUuid().toString());
+            unlocker.onCharacteristicWrite(getInstance(), gatt, bluetoothGattCharacteristic);
         }
 
         @Override

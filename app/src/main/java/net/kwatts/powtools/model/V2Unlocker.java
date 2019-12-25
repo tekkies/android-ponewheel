@@ -37,4 +37,15 @@ class V2Unlocker implements IUnlocker {
             gatt.writeCharacteristic(owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
         }
     }
+
+    @Override
+    public void onCharacteristicWrite(BluetoothUtil bluetoothUtil, BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic) {
+        // Step 5: In OnCharacteristicWrite, if isGemini & characteristic is Serial Write, NOW setNotify
+        // and read all the characteristics you want. its also only now that I start the
+        // repeated handshake clock thing but I don't think it really matters, this all happens pretty quick.
+        if (isGemini() && (bluetoothGattCharacteristic.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialWrite))) {
+            Timber.d("Step 5: Gemini and serial write, kicking off all the read and notifies...");
+            bluetoothUtil.whenActuallyConnected();
+        }
+    }
 }

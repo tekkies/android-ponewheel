@@ -1,6 +1,7 @@
 package net.kwatts.powtools.model;
 
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 
@@ -23,5 +24,10 @@ class V1Unlocker implements IUnlocker {
     @Override
     public void onDescriptorWrite(BluetoothGattService owGatService, BluetoothGatt gatt, BluetoothGattDescriptor descriptor) {
 
+    }
+
+    @Override
+    public void onCharacteristicWrite(BluetoothUtil instance, BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic) {
+        
     }
 }
