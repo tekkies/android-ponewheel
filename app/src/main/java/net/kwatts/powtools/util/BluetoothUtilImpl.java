@@ -77,6 +77,9 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     //TODO: decouple this crap from the UI/MainActivity
     @Override
     public void init(MainActivity mainActivity, OWDevice mOWDevice) {
+
+        new SessionFSM().init();
+
         this.mainActivity = mainActivity;
         this.mContext = mainActivity.getApplicationContext();
         this.mOWDevice = mOWDevice;
