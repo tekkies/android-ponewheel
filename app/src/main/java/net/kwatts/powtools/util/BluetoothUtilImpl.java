@@ -65,7 +65,6 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     private long mDisconnected_time;
     private int mRetryCount = 0;
     private int isUnlocked = 0;
-    IUnlocker unlocker;
 
     private Handler handler;
     private static int periodicSchedulerCount = 0;
@@ -163,19 +162,11 @@ public class BluetoothUtilImpl implements BluetoothUtil{
                 characteristicReadQueue.remove();
             }
 
-            // Stability Step 2: In OnCharacteristicRead, if the value is of the char firmware version, parse it's value.
-            // If its >= 4034, JUST write the descriptor for the Serial Read characteristic to Enable notifications,
-            // and set notify to true with gatt. Otherwise its Andromeda or lower and we can call the method to
-            // read & notify all the characteristics we want. (Although I learned doing this that some android devices
-            // have a max of 12 notify characteristics at once for some reason. At least I'm pretty sure.)
-            // I also set a class-wide boolean value isGemini to true here so I don't have to keep checking if its Andromeda
-            // or Gemini later on.
+
+            UnlockerFactory.onCharacteristicRead(getInstance(), owGatService, gatt, c);
+
             if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicFirmwareRevision)) {
-                Timber.d("We have the firmware revision! Checking version.");
-                int firmwareVersion = unsignedShort(c.getValue());
-                Session session = Session.Create(firmwareVersion);
-                unlocker = session.getUnlocker();
-                unlocker.onCharacteristicRead(getInstance(), owGatService, gatt);
+
             } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
                  Timber.d( "Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
             }
@@ -223,7 +214,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             BluetoothGatt bluetoothGatt = gatt;
             BluetoothGattCharacteristic bluetoothGattCharacteristic = c;
 
-            unlocker.onCharacteristicChanged(c, owGatService, gatt);
+            getUnlocker().onCharacteristicChanged(c, owGatService, gatt);
 
             mOWDevice.processUUID(bluetoothGattCharacteristic);
 
@@ -234,7 +225,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic, int status) {
             Timber.i( "onCharacteristicWrite: " + status + ", CharacteristicUuid=" + bluetoothGattCharacteristic.getUuid().toString());
-            unlocker.onCharacteristicWrite(getInstance(), gatt, bluetoothGattCharacteristic);
+            getUnlocker().onCharacteristicWrite(getInstance(), gatt, bluetoothGattCharacteristic);
         }
 
         @Override
@@ -242,7 +233,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
             Timber.i( "onDescriptorWrite: " + status + ",descriptor=" + descriptor.getUuid().toString() +
                     ",descriptor_characteristic=" + descriptor.getCharacteristic().getUuid().toString());
 
-            unlocker.onDescriptorWrite(owGatService, gatt, descriptor, status);
+            getUnlocker().onDescriptorWrite(owGatService, gatt, descriptor, status);
 
             if (descriptorWriteQueue.size() > 0) {
                 descriptorWriteQueue.remove();
@@ -266,6 +257,10 @@ public class BluetoothUtilImpl implements BluetoothUtil{
 
 
     };
+
+    private IUnlocker getUnlocker() {
+        return App.INSTANCE.session.getUnlocker();
+    }
 
     private void updateLog(String s) {
         mainActivity.updateLog(s);
