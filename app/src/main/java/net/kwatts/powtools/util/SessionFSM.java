@@ -12,6 +12,14 @@ import de.artcom.hsm.TransitionKind;
 
 class SessionFSM {
 
+    public static final String SWITCHED_ON = "switched_on";
+    public static final String VOLUME_UP = "volume_up";
+    public static final String SWITCHED_OFF = "switched_off";
+    public static final String VOLUME_DOWN = "volume_down";
+    public static final String OFF = "off";
+    public static final String ON = "on";
+    public static final String LOUD = "loud";
+    public static final String QUIET = "quiet";
     private int hoorays = 0;
 
     //FsmState state;
@@ -50,30 +58,33 @@ class SessionFSM {
             }
         };
 
-        State loud = new State("loud")
+        State loud = new State(LOUD)
                 .onEnter(onEnterLoud);
-        State quiet = new State("quiet")
+        State quiet = new State(QUIET)
                 .onEnter(onEnterQuiet);
 
-        quiet.addHandler("volume_up", loud, TransitionKind.External);
-        loud.addHandler("volume_down", quiet, TransitionKind.External);
+        quiet.addHandler(VOLUME_UP, loud, TransitionKind.External);
+        loud.addHandler(VOLUME_DOWN, quiet, TransitionKind.External);
 
-        Sub on = new Sub("on", new StateMachine(quiet, loud))
+        Sub on = new Sub(ON,
+                new StateMachine(quiet, loud))
                 .onEnter(onEnterOn);
 
-        State off = new State("off")
+        State off = new State(OFF)
                 .onEnter(onEnterOff);
 
-        on.addHandler("switched_off", off, TransitionKind.External);
-        off.addHandler("switched_on", on, TransitionKind.External);
+        on.addHandler(SWITCHED_OFF, off, TransitionKind.External);
+        off.addHandler(SWITCHED_ON, on, TransitionKind.External);
 
         StateMachine sm = new StateMachine(off, on);
         sm.init();
 
-        sm.handleEvent("switched_on");
-        sm.handleEvent("volume_up");
-        sm.handleEvent("switched_off");
-        sm.handleEvent("switched_on");
+        sm.handleEvent(SWITCHED_ON);
+        sm.handleEvent(VOLUME_UP);
+        sm.handleEvent(VOLUME_DOWN);
+        sm.handleEvent(VOLUME_UP);
+        sm.handleEvent(SWITCHED_OFF);
+        sm.handleEvent(SWITCHED_ON);
 /*
         StateMachineBuilder stateMachine = new StateMachineBuilder();
         stateMachine
