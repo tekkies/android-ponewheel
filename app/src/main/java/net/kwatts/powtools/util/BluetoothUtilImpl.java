@@ -14,8 +14,10 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.ParcelUuid;
 import android.os.Handler;
 import android.os.Looper;
@@ -58,6 +60,7 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
 
     private static final int REQUEST_ENABLE_BT = 1;
+    public static final String INIT = "Init";
     public static ByteArrayOutputStream inkey = new ByteArrayOutputStream();
     public static ObservableField<String> isOWFound = new ObservableField<>();
     public Context mContext;
@@ -88,7 +91,6 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     @Override
     public void init(MainActivity mainActivity, OWDevice mOWDevice) {
 
-        setupStateMachine();
 
 
         this.mainActivity = mainActivity;
@@ -96,6 +98,9 @@ public class BluetoothUtilImpl implements BluetoothUtil{
         this.mOWDevice = mOWDevice;
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
+
+        setupStateMachine();
+
 
         //final BluetoothManager manager = (BluetoothManager) mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
         //assert manager != null;
@@ -107,24 +112,73 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     }
 
     private void setupStateMachine() {
+
+
+        State init = new State(INIT);
         State adapterDisabled = new State(ADAPTER_DISABLED);
         State enablingAdapter = new State("ENABLING_ADAPTER");
-        enablingAdapter.onEnter(new Action() {
+        Action onEnterAction = new Action() {
             @Override
             public void run() {
-                if(mBluetoothAdapter.enable()) {
+                if (mBluetoothAdapter.enable()) {
                     handleEvent(ADAPTER_ENABLED);
                 } else {
                     handleEvent(ADAPTER_DISABLED);
                 }
             }
-        });
+        };
+        init.onEnter(onEnterAction);
         adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
         State adapterEnabled = new State(ADAPTER_ENABLED);
         enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
         enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
-        stateMachine = new StateMachine(adapterDisabled, enablingAdapter, adapterEnabled);
+
+        adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+
+        adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+
+        init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+        init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+
+
+        stateMachine = new StateMachine(init, adapterDisabled, enablingAdapter, adapterEnabled);
+
         stateMachine.init();
+
+        if (mBluetoothAdapter.isEnabled()) {
+            handleEvent(ADAPTER_ENABLED);
+        } else {
+            handleEvent(ADAPTER_DISABLED);
+        }
+    }
+
+    private BroadcastReceiver setupAdapterListener() {
+        final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+
+                if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                    final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
+                            BluetoothAdapter.ERROR);
+                    switch (state) {
+                        case BluetoothAdapter.STATE_OFF:
+                            handleEvent(ADAPTER_DISABLED);
+                            break;
+                        case BluetoothAdapter.STATE_TURNING_OFF:
+                            //setButtonText("Turning Bluetooth off...");
+                            break;
+                        case BluetoothAdapter.STATE_ON:
+                            handleEvent(ADAPTER_ENABLED);
+                            break;
+                        case BluetoothAdapter.STATE_TURNING_ON:
+                            //setButtonText("Turning Bluetooth on...");
+                            break;
+                    }
+                }
+            }
+        };
+        return mReceiver;
     }
 
     public BluetoothUtil getInstance()
@@ -380,6 +434,10 @@ public class BluetoothUtilImpl implements BluetoothUtil{
 
 
     public void connectToBoard() {
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        BroadcastReceiver receiver = setupAdapterListener();
+        mainActivity.registerReceiver(receiver, filter);
+
         handleEvent(CONNECT_TO_BOARD);
     }
 
