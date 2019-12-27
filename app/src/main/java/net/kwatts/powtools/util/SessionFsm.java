@@ -1,16 +1,13 @@
 package net.kwatts.powtools.util;
 
 
-import java.util.ArrayList;
-import java.util.List;
-
 import de.artcom.hsm.Action;
 import de.artcom.hsm.State;
 import de.artcom.hsm.StateMachine;
 import de.artcom.hsm.Sub;
 import de.artcom.hsm.TransitionKind;
 
-class SessionFSM {
+class SessionFsm {
 
     public static final String SWITCHED_ON = "switched_on";
     public static final String VOLUME_UP = "volume_up";
@@ -20,16 +17,18 @@ class SessionFSM {
     public static final String ON = "on";
     public static final String LOUD = "loud";
     public static final String QUIET = "quiet";
+
     private int hoorays = 0;
+    private StateMachine adapterStateMachine;
 
     //FsmState state;
 
-    public SessionFSM() {
+    public SessionFsm() {
 
     }
 
-    public void init() {
 
+    public void init() {
 
 
 
@@ -76,15 +75,17 @@ class SessionFSM {
         on.addHandler(SWITCHED_OFF, off, TransitionKind.External);
         off.addHandler(SWITCHED_ON, on, TransitionKind.External);
 
-        StateMachine sm = new StateMachine(off, on);
-        sm.init();
+        adapterStateMachine = new StateMachine(off, on);
+        adapterStateMachine.init();
 
-        sm.handleEvent(SWITCHED_ON);
-        sm.handleEvent(VOLUME_UP);
-        sm.handleEvent(VOLUME_DOWN);
-        sm.handleEvent(VOLUME_UP);
-        sm.handleEvent(SWITCHED_OFF);
-        sm.handleEvent(SWITCHED_ON);
+
+
+        adapterStateMachine.handleEvent(SWITCHED_ON);
+        adapterStateMachine.handleEvent(VOLUME_UP);
+        adapterStateMachine.handleEvent(VOLUME_DOWN);
+        adapterStateMachine.handleEvent(VOLUME_UP);
+        adapterStateMachine.handleEvent(SWITCHED_OFF);
+        adapterStateMachine.handleEvent(SWITCHED_ON);
 /*
         StateMachineBuilder stateMachine = new StateMachineBuilder();
         stateMachine
@@ -103,6 +104,8 @@ class SessionFSM {
 
         //Timber.i("We got back %s", userName);
     }
+
+
 
 
 /*

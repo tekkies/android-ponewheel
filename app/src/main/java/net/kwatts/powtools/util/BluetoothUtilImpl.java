@@ -43,9 +43,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.security.DigestInputStream;
 
+import de.artcom.hsm.Action;
+import de.artcom.hsm.State;
+import de.artcom.hsm.StateMachine;
+import de.artcom.hsm.TransitionKind;
 import timber.log.Timber;
 
 public class BluetoothUtilImpl implements BluetoothUtil{
+
+    public static final String ADAPTER_DISABLED = "Adapter Disabled";
+    public static final String ADAPTER_ENABLED = "Adapter Enabled";
+    public static final String CONNECT_TO_BOARD = "Connect to board";
 
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
 
@@ -74,11 +82,14 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     private Handler handler;
     private static int periodicSchedulerCount = 0;
 
+    StateMachine stateMachine;
+
     //TODO: decouple this crap from the UI/MainActivity
     @Override
     public void init(MainActivity mainActivity, OWDevice mOWDevice) {
 
-        new SessionFSM().init();
+        setupStateMachine();
+
 
         this.mainActivity = mainActivity;
         this.mContext = mainActivity.getApplicationContext();
@@ -93,6 +104,27 @@ public class BluetoothUtilImpl implements BluetoothUtil{
 
         handler = new Handler(Looper.getMainLooper());
         periodicCharacteristics();
+    }
+
+    private void setupStateMachine() {
+        State adapterDisabled = new State(ADAPTER_DISABLED);
+        State enablingAdapter = new State("ENABLING_ADAPTER");
+        enablingAdapter.onEnter(new Action() {
+            @Override
+            public void run() {
+                if(mBluetoothAdapter.enable()) {
+                    handleEvent(ADAPTER_ENABLED);
+                } else {
+                    handleEvent(ADAPTER_DISABLED);
+                }
+            }
+        });
+        adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
+        State adapterEnabled = new State(ADAPTER_ENABLED);
+        enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+        enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+        stateMachine = new StateMachine(adapterDisabled, enablingAdapter, adapterEnabled);
+        stateMachine.init();
     }
 
     public BluetoothUtil getInstance()
@@ -347,7 +379,22 @@ public class BluetoothUtilImpl implements BluetoothUtil{
     }
 
 
+    public void connectToBoard() {
+        handleEvent(CONNECT_TO_BOARD);
+    }
+
+    private void handleEvent(String event) {
+        Timber.i("Event:%s", event);
+        stateMachine.handleEvent(event);
+        Timber.i("New state: %s", stateMachine.getAllActiveStates());
+
+    }
+
     void scanLeDevice(final boolean enable) {
+
+        connectToBoard();
+
+
         Timber.d("scanLeDevice enable = " + enable);
         if (enable) {
             mScanning = true;
