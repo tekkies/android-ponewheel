@@ -1,0 +1,15 @@
+@startuml
+
+title State Model
+state Enabled {
+    state Adapter_Disabled
+    state ENABLING_ADAPTER
+    state Adapter_Enabled
+    state Init
+    state Found
+    state Scanning
+}
+state Disabled {
+}
+@enduml
+

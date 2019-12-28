@@ -14,30 +14,20 @@ import timber.log.Timber;
 
 class PlantUmlGenerator {
     StringBuilder plantUml;
+    StringBuilder transitions;
     public String getPlanUml(StateMachine stateMachine) {
             plantUml = new StringBuilder();
+            transitions = new StringBuilder();
 
             plantUml.append("@startuml\n" +
                     "\n" +
-                    "title Simple Composite State Model\n" +
-                    "[*] --> NeilDiamond\n" +
-                    "state NeilDiamond \n" +
-                    "\n" +
-                    "state \"Neil Diamond\" as NeilDiamond {\n" +
-                    "  state Dancing\n" +
-                    "  state Singing\n" +
-                    "  state Smiling\n" +
-                    "  Dancing --> Singing\n" +
-                    "  Singing --> Smiling\n" +
-                    "  Smiling --> Dancing\n" +
-                    "}\n" +
-                    "\n");
-
+                    "title State Model\n");
 
         List<State> stateList = getStateList(stateMachine);
 
         for (State state:stateList) {
             appendLine(String.format("state %s {", getName(state)));
+            //getTransitions(state);
 
             List<State> descendantStates = getDescendantStates(state);
             for (State descendantState: descendantStates) {
@@ -53,8 +43,26 @@ class PlantUmlGenerator {
             return plantUml.toString();
         }
 
+        /*
+    private void getHandlers(State state) {
+         //mHandlers
+        try {
+            Field mStateList = state.getClass().getDeclaredField("mHandlers");
+            mStateList.setAccessible(true);
+            LinkedListMultimap<String, Handler> stateList = (List<State>) mStateList.get(state);
+            return stateList;
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    */
+
+
     private String getName(State state) {
-        return state.getId().replace(" ","");
+        return state.getId().replace(" ","_");
     }
 
     private void writeToFile(String string) {
