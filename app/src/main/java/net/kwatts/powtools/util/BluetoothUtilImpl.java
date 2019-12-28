@@ -145,12 +145,29 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         };
     }
 
-
     private StateMachine createBluetoothStateMachine() {
         State init = new State(INIT);
         State adapterDisabled = new State(ADAPTER_DISABLED);
         State enablingAdapter = new State("ENABLING_ADAPTER");
-        Action onEnterAction = new Action() {
+        init.onEnter(onEnterInitAction());
+        adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
+        State adapterEnabled = new Sub(ADAPTER_ENABLED, createConnectionStateMachine());
+        enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+        enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+
+        adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+
+        adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+
+        init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+        init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+
+        return new StateMachine(init, adapterDisabled, enablingAdapter, adapterEnabled);
+    }
+
+    @NotNull
+    private Action onEnterInitAction() {
+        return new Action() {
 
             BroadcastReceiver receiver;
 
@@ -170,20 +187,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
 
         };
-        init.onEnter(onEnterAction);
-        adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
-        State adapterEnabled = new Sub(ADAPTER_ENABLED, createConnectionStateMachine());
-        enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
-        enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
-
-        adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
-
-        adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
-
-        init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
-        init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
-
-        return new StateMachine(init, adapterDisabled, enablingAdapter, adapterEnabled);
     }
 
     private StateMachine createConnectionStateMachine() {
