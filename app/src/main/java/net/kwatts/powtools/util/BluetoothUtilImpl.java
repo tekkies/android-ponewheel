@@ -151,7 +151,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         State enablingAdapter = new State("ENABLING_ADAPTER");
         init.onEnter(onEnterInitAction());
         adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
-        State adapterEnabled = new Sub(ADAPTER_ENABLED, createConnectionStateMachine());
+        State adapterEnabled = new Sub(ADAPTER_ENABLED, ConnectionStateMachine.createConnectionStateMachine());
         enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
         enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
@@ -189,12 +189,15 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         };
     }
 
-    private StateMachine createConnectionStateMachine() {
-        State scanning = new State(SCANNING);
-        scanning.onEnter(onEnterScanningAction());
-        State found = new State(FOUND);
-        scanning.addHandler(FOUND, found, TransitionKind.External);
-        return new StateMachine(scanning, found);
+
+    class ConnectionStateMachine {
+        public StateMachine createConnectionStateMachine() {
+            State scanning = new State(SCANNING);
+            scanning.onEnter(onEnterScanningAction());
+            State found = new State(FOUND);
+            scanning.addHandler(FOUND, found, TransitionKind.External);
+            return new StateMachine(scanning, found);
+        }
     }
 
     @NotNull
