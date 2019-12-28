@@ -31,6 +31,8 @@ import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +60,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     public static final String ADAPTER_DISABLED = "Adapter Disabled";
     public static final String ADAPTER_ENABLED = "Adapter Enabled";
     public static final String CONNECT_TO_BOARD = "Connect to board";
+    public static final String FOUND = "Found";
 
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
 
@@ -67,6 +70,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     public static final String ENABLED = "Enabled";
     public static final String ENABLE = "Enable";
     public static final String DISABLE = "Disable";
+    public static final String SCANNING = "Scanning";
     public static ByteArrayOutputStream inkey = new ByteArrayOutputStream();
     public static ObservableField<String> isOWFound = new ObservableField<>();
     public Context mContext;
@@ -104,7 +108,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
 
-        setupStateMachine();
+        createTopLevelStateMachine();
 
 
         //final BluetoothManager manager = (BluetoothManager) mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -116,16 +120,29 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         periodicCharacteristics();
     }
 
-    private void setupStateMachine() {
-
+    private void createTopLevelStateMachine() {
 
         State disabled = new State(DISABLED);
         State enabled = new Sub(ENABLED, createBluetoothStateMachine());
+        enabled.onExit(onExitEnabledAction());
         disabled.addHandler(ENABLE, enabled, TransitionKind.External);
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
         stateMachine.init();
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
+    }
+
+    @NotNull
+    private Action onExitEnabledAction() {
+        return new Action() {
+            @Override
+            public void run() {
+                mScanning = false;
+                mBluetoothLeScanner.stopScan(mScanCallback);
+                // added 10/23 to try cleanup
+                mBluetoothLeScanner.flushPendingScanResults(mScanCallback);
+            }
+        };
     }
 
 
@@ -155,7 +172,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         };
         init.onEnter(onEnterAction);
         adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
-        State adapterEnabled = new State(ADAPTER_ENABLED);
+        State adapterEnabled = new Sub(ADAPTER_ENABLED, createConnectionStateMachine());
         enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
         enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
@@ -167,6 +184,31 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
         return new StateMachine(init, adapterDisabled, enablingAdapter, adapterEnabled);
+    }
+
+    private StateMachine createConnectionStateMachine() {
+        State scanning = new State(SCANNING);
+        scanning.onEnter(onEnterScanningAction());
+        State found = new State(FOUND);
+        scanning.addHandler(FOUND, found, TransitionKind.External);
+        return new StateMachine(scanning, found);
+    }
+
+    @NotNull
+    private Action onEnterScanningAction() {
+        return new Action() {
+            @Override
+            public void run() {
+                mScanning = true;
+                List<ScanFilter> filters_v2 = new ArrayList<>();
+                ScanFilter scanFilter = new ScanFilter.Builder()
+                        .setServiceUuid(ParcelUuid.fromString(OWDevice.OnewheelServiceUUID))
+                        .build();
+                filters_v2.add(scanFilter);
+                //c03f7c8d-5e96-4a75-b4b6-333d36230365
+                mBluetoothLeScanner.startScan(filters_v2, settings, mScanCallback);
+            }
+        };
     }
 
     private BroadcastReceiver setupAdapterListener() {
@@ -456,24 +498,8 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     }
 
     void scanLeDevice(final boolean enable) {
-        handleEvent(enable ? ENABLE : DISABLE);
-
         Timber.d("scanLeDevice enable = " + enable);
-        if (enable) {
-            mScanning = true;
-            List<ScanFilter> filters_v2 = new ArrayList<>();
-            ScanFilter scanFilter = new ScanFilter.Builder()
-                    .setServiceUuid(ParcelUuid.fromString(OWDevice.OnewheelServiceUUID))
-                    .build();
-            filters_v2.add(scanFilter);
-            //c03f7c8d-5e96-4a75-b4b6-333d36230365
-            mBluetoothLeScanner.startScan(filters_v2, settings, mScanCallback);
-        } else {
-            mScanning = false;
-            mBluetoothLeScanner.stopScan(mScanCallback);
-            // added 10/23 to try cleanup
-            mBluetoothLeScanner.flushPendingScanResults(mScanCallback);
-        }
+        handleEvent(enable ? ENABLE : DISABLE);
         mainActivity.invalidateOptionsMenu();
     }
 
