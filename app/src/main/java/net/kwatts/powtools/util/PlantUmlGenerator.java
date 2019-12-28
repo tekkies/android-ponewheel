@@ -37,11 +37,11 @@ class PlantUmlGenerator {
         List<State> stateList = getStateList(stateMachine);
 
         for (State state:stateList) {
-            appendLine(String.format("state %s {", state));
+            appendLine(String.format("state %s {", getName(state)));
 
             List<State> descendantStates = getDescendantStates(state);
             for (State descendantState: descendantStates) {
-                appendLine(String.format("    state %s", descendantState));
+                appendLine(String.format("    state %s", getName(descendantState)));
             }
 
             appendLine("}");
@@ -52,6 +52,10 @@ class PlantUmlGenerator {
         Timber.i(plantUml.toString());
             return plantUml.toString();
         }
+
+    private String getName(State state) {
+        return state.getId().replace(" ","");
+    }
 
     private void writeToFile(String string) {
         PrintWriter writer = null;
