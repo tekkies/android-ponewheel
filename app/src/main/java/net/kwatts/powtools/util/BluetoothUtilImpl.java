@@ -491,10 +491,20 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
 
     private void handleStateMachineEvent(String event) {
-        Timber.i("%s", event);
         stateMachine.handleEvent(event);
-        Timber.i("    --> %s", stateMachine.getPathString());
+        logTransition(event);
+    }
 
+    private void logTransition(String event) {
+        StringBuilder sb = new StringBuilder(String.format("-- %s -->%s", event, System.lineSeparator()));
+        String[] states = stateMachine.toString().replace("(","").replace(")","").split("/");
+        for(int i=0;i<states.length;i++)
+        {
+            sb.append(new String(new char[i*4]).replace("\0", " "));
+            sb.append(states[i]);
+            sb.append(System.lineSeparator());
+        }
+        Timber.i(sb.toString());
     }
 
     void scanLeDevice(final boolean enable) {
