@@ -39,7 +39,10 @@ class PlantUmlGenerator {
         for (State state:stateList) {
             appendLine(String.format("state %s {", state));
 
-            getDescendantStates(state);
+            List<State> descendantStates = getDescendantStates(state);
+            for (State descendantState: descendantStates) {
+                appendLine(String.format("    state %s", descendantState));
+            }
 
             appendLine("}");
         }
@@ -63,13 +66,13 @@ class PlantUmlGenerator {
         writer.close();
     }
 
-    private Object getDescendantStates(State state) {
+    private List<State> getDescendantStates(State state) {
         Method getDescendantStatesMethod = null;
         try {
             getDescendantStatesMethod = state.getClass().getDeclaredMethod("getDescendantStates");
             getDescendantStatesMethod.setAccessible(true);
             Object decendentStates = getDescendantStatesMethod.invoke(state);
-            return decendentStates;
+            return (List<State>) decendentStates;
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
