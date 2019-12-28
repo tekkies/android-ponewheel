@@ -129,8 +129,10 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
         stateMachine.init();
+        Timber.i(new PlantUmlGenerator().getPlanUml(stateMachine));
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
     }
+
 
     @NotNull
     private Action onExitEnabledAction() {
@@ -146,12 +148,14 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     }
 
     private StateMachine createBluetoothStateMachine() {
+
+
         State init = new State(INIT);
         State adapterDisabled = new State(ADAPTER_DISABLED);
         State enablingAdapter = new State("ENABLING_ADAPTER");
         init.onEnter(onEnterInitAction());
         adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
-        State adapterEnabled = new Sub(ADAPTER_ENABLED, ConnectionStateMachine.createConnectionStateMachine());
+        State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
         enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
         enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
