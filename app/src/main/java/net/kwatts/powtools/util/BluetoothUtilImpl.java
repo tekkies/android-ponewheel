@@ -162,9 +162,9 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 mainActivity.registerReceiver(receiver, filter);
 
                 if (mBluetoothAdapter.enable()) {
-                    handleEvent(ADAPTER_ENABLED);
+                    handleStateMachineEvent(ADAPTER_ENABLED);
                 } else {
-                    handleEvent(ADAPTER_DISABLED);
+                    handleStateMachineEvent(ADAPTER_DISABLED);
                 }
             }
 
@@ -222,13 +222,13 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                             BluetoothAdapter.ERROR);
                     switch (state) {
                         case BluetoothAdapter.STATE_OFF:
-                            handleEvent(ADAPTER_DISABLED);
+                            handleStateMachineEvent(ADAPTER_DISABLED);
                             break;
                         case BluetoothAdapter.STATE_TURNING_OFF:
                             //setButtonText("Turning Bluetooth off...");
                             break;
                         case BluetoothAdapter.STATE_ON:
-                            handleEvent(ADAPTER_ENABLED);
+                            handleStateMachineEvent(ADAPTER_ENABLED);
                             break;
                         case BluetoothAdapter.STATE_TURNING_ON:
                             //setButtonText("Turning Bluetooth on...");
@@ -490,16 +490,16 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     }
 
 
-    private void handleEvent(String event) {
-        Timber.i("Event:%s", event);
+    private void handleStateMachineEvent(String event) {
+        Timber.i("%s", event);
         stateMachine.handleEvent(event);
-        Timber.i("New state: %s", stateMachine.getAllActiveStates());
+        Timber.i("    --> %s", stateMachine.getPathString());
 
     }
 
     void scanLeDevice(final boolean enable) {
         Timber.d("scanLeDevice enable = " + enable);
-        handleEvent(enable ? ENABLE : DISABLE);
+        handleStateMachineEvent(enable ? ENABLE : DISABLE);
         mainActivity.invalidateOptionsMenu();
     }
 
