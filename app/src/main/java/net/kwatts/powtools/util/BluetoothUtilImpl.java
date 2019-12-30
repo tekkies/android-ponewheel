@@ -131,13 +131,17 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
         stateMachine.init();
-        String plantUml = new PlantUmlBuilder(stateMachine).build();
-        Timber.i(plantUml);
-        String url = getPlanTextUrl(plantUml);
-        mainActivity.updateStateMachine(url);
+        updateStateDiagram();
         //PlantUmlRender.render(plantUml);
 
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
+    }
+
+    private void updateStateDiagram() {
+        String plantUml = new PlantUmlBuilder(stateMachine).highlightActiveState().build();
+        Timber.i(plantUml);
+        String url = getPlanTextUrl(plantUml);
+        mainActivity.updateStateMachine(url);
     }
 
     private String getPlanTextUrl(String plantUml) {
@@ -517,6 +521,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     private void handleStateMachineEvent(String event) {
         stateMachine.handleEvent(event);
         logTransition(event);
+        updateStateDiagram();
     }
 
     private void logTransition(String event) {
