@@ -33,9 +33,7 @@ import net.kwatts.powtools.model.Session;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,7 +47,6 @@ import java.security.MessageDigest;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.security.DigestInputStream;
-import java.util.zip.Deflater;
 
 import de.artcom.hsm.Action;
 import de.artcom.hsm.State;
@@ -136,15 +133,17 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         stateMachine.init();
         String plantUml = new PlantUmlBuilder(stateMachine).build();
         Timber.i(plantUml);
-        getPlanTextUrl(plantUml);
+        String url = getPlanTextUrl(plantUml);
+        mainActivity.updateStateMachine(url);
         //PlantUmlRender.render(plantUml);
 
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
     }
 
-    private void getPlanTextUrl(String plantUml) {
+    private String getPlanTextUrl(String plantUml) {
         String url = new PlantUmlUrlEncoder().getUrl(plantUml);
         Timber.i(url);
+        return url;
     }
 
 
