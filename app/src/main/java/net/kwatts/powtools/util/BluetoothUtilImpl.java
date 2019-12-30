@@ -54,6 +54,7 @@ import de.artcom.hsm.StateMachine;
 import de.artcom.hsm.Sub;
 import de.artcom.hsm.TransitionKind;
 import timber.log.Timber;
+import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 
 public class BluetoothUtilImpl implements BluetoothUtil {
 
@@ -129,7 +130,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
         stateMachine.init();
-        //Timber.i(new PlantUmlGenerator().getPlanUml(stateMachine));
+        Timber.i(new PlantUmlBuilder(stateMachine).build());
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
     }
 

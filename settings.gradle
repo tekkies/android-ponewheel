@@ -1,2 +1,3 @@
 include ':app'
+include ':hsm-java-plantuml'
 include ':hsm-java-plantuml:hsm-java:hsm'

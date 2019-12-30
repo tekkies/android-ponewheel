@@ -97,5 +97,6 @@ dependencies {
 
     //implementation 'com.github.artcom:hsm-java:0.2.
     implementation project(':hsm-java-plantuml:hsm-java:hsm')
+    implementation project(':hsm-java-plantuml')
 }
 
