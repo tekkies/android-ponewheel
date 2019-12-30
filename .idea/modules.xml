@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/hsm-java-plantuml/hsm-java/hsm/hsm.iml" filepath="$PROJECT_DIR$/hsm-java-plantuml/hsm-java/hsm/hsm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/hsm-java-plantuml/hsm-java/hsm-java.iml" filepath="$PROJECT_DIR$/hsm-java-plantuml/hsm-java/hsm-java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/hsm-java-plantuml/hsm-java-plantuml.iml" filepath="$PROJECT_DIR$/hsm-java-plantuml/hsm-java-plantuml.iml" />
       <module fileurl="file://$PROJECT_DIR$/tekkies.android-ponewheel.iml" filepath="$PROJECT_DIR$/tekkies.android-ponewheel.iml" />
     </modules>
   </component>

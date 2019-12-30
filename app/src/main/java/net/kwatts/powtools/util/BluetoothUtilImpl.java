@@ -129,7 +129,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
         stateMachine.init();
-        Timber.i(new PlantUmlGenerator().getPlanUml(stateMachine));
+        //Timber.i(new PlantUmlGenerator().getPlanUml(stateMachine));
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
     }
 
