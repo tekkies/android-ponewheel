@@ -1,0 +1,3 @@
+[submodule "hsm-java-plantuml"]
+	path = hsm-java-plantuml
+	url = https://github.com/tekkies/hsm-java-plantuml.git
