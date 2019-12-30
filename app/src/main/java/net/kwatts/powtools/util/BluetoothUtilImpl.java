@@ -33,7 +33,9 @@ import net.kwatts.powtools.model.Session;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,6 +49,7 @@ import java.security.MessageDigest;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.security.DigestInputStream;
+import java.util.zip.Deflater;
 
 import de.artcom.hsm.Action;
 import de.artcom.hsm.State;
@@ -55,6 +58,7 @@ import de.artcom.hsm.Sub;
 import de.artcom.hsm.TransitionKind;
 import timber.log.Timber;
 import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
+import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
 public class BluetoothUtilImpl implements BluetoothUtil {
 
@@ -130,9 +134,19 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
         stateMachine.init();
-        Timber.i(new PlantUmlBuilder(stateMachine).build());
+        String plantUml = new PlantUmlBuilder(stateMachine).build();
+        Timber.i(plantUml);
+        getPlanTextUrl(plantUml);
+        //PlantUmlRender.render(plantUml);
+
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
     }
+
+    private void getPlanTextUrl(String plantUml) {
+        String url = new PlantUmlUrlEncoder().getUrl(plantUml);
+        Timber.i(url);
+    }
+
 
 
     @NotNull
