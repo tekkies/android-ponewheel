@@ -99,6 +99,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     private static int periodicSchedulerCount = 0;
 
     StateMachine stateMachine; //see docs of https://github.com/artcom/hsm-cs
+    private DiagramCache diagramCache;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -132,22 +133,18 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
         stateMachine.init();
-        updateStateDiagram();
         //PlantUmlRender.render(plantUml);
 
         String cacheDir = mainActivity.getCacheDir().getAbsolutePath()+File.separator+"stateDiagram";
-        DiagramCache diagramCache = new DiagramCache(cacheDir, stateMachine)
+        diagramCache = new DiagramCache(cacheDir, stateMachine)
                 .ensurePathExists()
                 .fill();
-
+        updateStateDiagram();
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
     }
 
     private void updateStateDiagram() {
-        String plantUml = new PlantUmlBuilder(stateMachine).highlightActiveState().build();
-        Timber.i(plantUml);
-        String url = getPlanTextUrl(plantUml);
-        mainActivity.updateStateMachine(url);
+        mainActivity.updateStateMachine(diagramCache);
     }
 
     private String getPlanTextUrl(String plantUml) {

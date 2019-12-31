@@ -53,6 +53,7 @@ import net.kwatts.powtools.events.NotificationEvent;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.util.BluetoothUtil;
 import net.kwatts.powtools.util.BluetoothUtilImpl;
+import net.kwatts.powtools.util.DiagramCache;
 import net.kwatts.powtools.util.Notify;
 import net.kwatts.powtools.util.PermissionUtil;
 import net.kwatts.powtools.util.SharedPreferencesUtil;
@@ -697,27 +698,30 @@ public class MainActivity extends AppCompatActivity implements
     int frontBlinkCount = 0;
     int backBlinkCount = 0;
 
-    public void updateStateMachine(String url) {
-        new DownloadImageTask((ImageView) findViewById(R.id.state_diagram)).execute(url);
+    public void updateStateMachine(DiagramCache diagramCache) {
+
+        new DownloadImageTask((ImageView) findViewById(R.id.state_diagram)).execute(diagramCache);
     }
 
-    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+    private class DownloadImageTask extends AsyncTask<DiagramCache, Void, Bitmap> {
         ImageView bmImage;
         public DownloadImageTask(ImageView bmImage) {
             this.bmImage = bmImage;
         }
 
-        protected Bitmap doInBackground(String... urls) {
-            String urldisplay = urls[0];
-            Bitmap mIcon11 = null;
+        protected Bitmap doInBackground(DiagramCache... diagramCaches) {
+            DiagramCache diagramCache = diagramCaches[0];
+            Bitmap diagramBitmap = null;
             try {
-                InputStream in = new java.net.URL(urldisplay).openStream();
-                mIcon11 = BitmapFactory.decodeStream(in);
+                InputStream diagramInputStream = diagramCache.getActiveStateDiagram();
+                if(diagramInputStream != null) {
+                    diagramBitmap = BitmapFactory.decodeStream(diagramInputStream);
+                }
             } catch (Exception e) {
                 Log.e("Error", e.getMessage());
                 e.printStackTrace();
             }
-            return mIcon11;
+            return diagramBitmap;
         }
 
         protected void onPostExecute(Bitmap result) {

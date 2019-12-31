@@ -2,41 +2,46 @@ package net.kwatts.powtools.util;
 
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import net.kwatts.powtools.App;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import de.artcom.hsm.State;
 import de.artcom.hsm.StateMachine;
-import timber.log.Timber;
 import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
+import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
-class DiagramCache {
+public class DiagramCache {
     private String cacheFolder;
     private StateMachine stateMachine;
+    private Map<String, String> stateIdToFilePath;
 
     public DiagramCache(String location, StateMachine stateMachine) {
         this.cacheFolder = location;
         this.stateMachine = stateMachine;
-
+        stateIdToFilePath = new HashMap<String, String>();
     }
 
     public DiagramCache fill() {
         new CacheFillTask(stateMachine).execute();
-
         return this;
     }
 
-    private File getFile(String activeStateDiagramUrl) {
+    private File getFileForUrl(String activeStateDiagramUrl) {
         File result=null;
         String fileName = getFileName(activeStateDiagramUrl);
         String filePath = cacheFolder + File.separator + fileName;
@@ -105,18 +110,30 @@ class DiagramCache {
         return this;
     }
 
-    private class CacheFillTask extends AsyncTask<String, Void, Boolean> {
-        ImageView bmImage;
-
-        public CacheFillTask(StateMachine stateMachine) {
-            this.bmImage = bmImage;
+    public InputStream getActiveStateDiagram() {
+        InputStream diagramStream=null;
+        List<State> allActiveStates = stateMachine.getAllActiveStates();
+        State currentActiveState = allActiveStates.get(allActiveStates.size() - 1);
+        String diagramFilePath = getDiagramFilePath(currentActiveState);
+        if(diagramFilePath != null) {
+            try {
+                diagramStream = new FileInputStream(diagramFilePath);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
         }
+        return diagramStream;
+    }
 
+    private class CacheFillTask extends AsyncTask<String, Void, Boolean> {
+        public CacheFillTask(StateMachine stateMachine) {
+        }
         protected Boolean doInBackground(String... urls) {
             Boolean success = true;
-            List<String> activeStateDiagramUrls = new PlantUmlBuilder(stateMachine).getActiveStateDiagramUrls();
-            for (String activeStateDiagramUrl : activeStateDiagramUrls) {
-                if(getFile(activeStateDiagramUrl) == null)
+            List<State> leafStates = getLeafStates();
+            for (State leafState: leafStates) {
+                String diagramFilePath = getDiagramFilePath(leafState);
+                if(diagramFilePath == null)
                 {
                     success = false;
                 }
@@ -124,12 +141,36 @@ class DiagramCache {
             return success;
         }
 
-
         protected void onPostExecute(Boolean result) {
             String message = result ? "Cache filled" : "Cache fill FAILED";
             Toast.makeText(App.INSTANCE.getApplicationContext(),  message, Toast.LENGTH_LONG).show();
-
         }
     }
 
+    private String getDiagramFilePath(State state) {
+        String diagramFilePath = this.stateIdToFilePath.get(state.getId());
+        if(diagramFilePath == null) {
+            String plantUml = new PlantUmlBuilder(stateMachine).highlight(state).build();
+            String url = new PlantUmlUrlEncoder().getUrl(plantUml);
+            File file = getFileForUrl(url);
+            if(file != null)
+            {
+                diagramFilePath = file.getAbsolutePath();
+                stateIdToFilePath.put(state.getId(), diagramFilePath);
+
+            }
+        }
+        return diagramFilePath;
+    }
+
+    private List<State> getLeafStates() {
+        List<State> allStates = stateMachine.getDescendantStates();
+        List<State> leafStates = new ArrayList<State>();
+        for (State state:allStates) {
+            if(state.getDescendantStates().size() == 0) {
+                leafStates.add(state);
+            }
+        }
+        return leafStates;
+    }
 }
