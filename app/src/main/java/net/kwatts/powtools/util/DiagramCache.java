@@ -22,6 +22,7 @@ import java.util.Map;
 
 import de.artcom.hsm.State;
 import de.artcom.hsm.StateMachine;
+import timber.log.Timber;
 import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
@@ -132,6 +133,7 @@ public class DiagramCache {
             Boolean success = true;
             List<State> leafStates = getLeafStates();
             for (State leafState: leafStates) {
+                Timber.v(leafState.getId());
                 String diagramFilePath = getDiagramFilePath(leafState);
                 if(diagramFilePath == null)
                 {

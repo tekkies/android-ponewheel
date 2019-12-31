@@ -129,7 +129,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         State disabled = new State(DISABLED);
         State enabled = new Sub(ENABLED, createBluetoothStateMachine());
-        enabled.onExit(onExitEnabledAction());
         disabled.addHandler(ENABLE, enabled, TransitionKind.External);
         enabled.addHandler(DISABLE, disabled, TransitionKind.External);
         stateMachine = new StateMachine(disabled, enabled);
@@ -154,19 +153,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         return url;
     }
 
-
-    @NotNull
-    private Action onExitEnabledAction() {
-        return new Action() {
-            @Override
-            public void run() {
-                mScanning = false;
-                mBluetoothLeScanner.stopScan(mScanCallback);
-                // added 10/23 to try cleanup
-                mBluetoothLeScanner.flushPendingScanResults(mScanCallback);
-            }
-        };
-    }
 
     private StateMachine createBluetoothStateMachine() {
 
@@ -531,7 +517,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         StringBuilder sb = new StringBuilder(String.format("-- %s -->%s", event, System.lineSeparator()));
         String[] states = stateMachine.toString().replace("(", "").replace(")", "").split("/");
         for (int i = 0; i < states.length; i++) {
-            sb.append(new String(new char[i * 4]).replace("\0", " "));
+            sb.append(new String(new char[(i+1) * 4]).replace("\0", " "));
             sb.append(states[i]);
             sb.append(System.lineSeparator());
         }
@@ -540,8 +526,21 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     void scanLeDevice(final boolean enable) {
         Timber.d("scanLeDevice enable = " + enable);
-        handleStateMachineEvent(enable ? ENABLE : DISABLE);
+        if(enable) {
+            handleStateMachineEvent(ENABLE);
+        }
+        else
+        {
+            stopScanLeDevice();
+        }
         mainActivity.invalidateOptionsMenu();
+    }
+
+    private void stopScanLeDevice() {
+        mScanning = false;
+        mBluetoothLeScanner.stopScan(mScanCallback);
+        // added 10/23 to try cleanup
+        mBluetoothLeScanner.flushPendingScanResults(mScanCallback);
     }
 
     private ScanCallback mScanCallback = new ScanCallback() {
