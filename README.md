@@ -31,3 +31,8 @@ Special thanks to,
 [Google Play]: https://play.google.com/store/apps/details?id=net.kwatts.powtools
 [Google Play Beta]: https://play.google.com/apps/testing/net.kwatts.powtools
 
+> This fork
+
+Try to manage comms with a hierarchical state machine
+
+![State digram](doc/state-diagram.gif)
