@@ -33,6 +33,7 @@ import net.kwatts.powtools.model.Session;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,6 +135,11 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         updateStateDiagram();
         //PlantUmlRender.render(plantUml);
 
+        String cacheDir = mainActivity.getCacheDir().getAbsolutePath()+File.separator+"stateDiagram";
+        DiagramCache diagramCache = new DiagramCache(cacheDir, stateMachine)
+                .ensurePathExists()
+                .fill();
+
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
     }
 
@@ -149,7 +155,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         Timber.i(url);
         return url;
     }
-
 
 
     @NotNull
@@ -526,10 +531,9 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     private void logTransition(String event) {
         StringBuilder sb = new StringBuilder(String.format("-- %s -->%s", event, System.lineSeparator()));
-        String[] states = stateMachine.toString().replace("(","").replace(")","").split("/");
-        for(int i=0;i<states.length;i++)
-        {
-            sb.append(new String(new char[i*4]).replace("\0", " "));
+        String[] states = stateMachine.toString().replace("(", "").replace(")", "").split("/");
+        for (int i = 0; i < states.length; i++) {
+            sb.append(new String(new char[i * 4]).replace("\0", " "));
             sb.append(states[i]);
             sb.append(System.lineSeparator());
         }
