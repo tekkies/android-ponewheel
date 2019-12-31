@@ -141,9 +141,10 @@ public class DiagramCache {
             return success;
         }
 
-        protected void onPostExecute(Boolean result) {
-            String message = result ? "Cache filled" : "Cache fill FAILED";
-            Toast.makeText(App.INSTANCE.getApplicationContext(),  message, Toast.LENGTH_LONG).show();
+        protected void onPostExecute(Boolean success) {
+            if(!success) {
+                Toast.makeText(App.INSTANCE.getApplicationContext(), "Diagram cache failed to download.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
