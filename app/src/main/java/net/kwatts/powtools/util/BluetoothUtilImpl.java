@@ -74,6 +74,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     public static final String ENABLE = "Enable";
     public static final String DISABLE = "Disable";
     public static final String SCANNING = "Scanning";
+    public static final String ENABLING_ADAPTER = "Enabling Adapter";
     public static ByteArrayOutputStream inkey = new ByteArrayOutputStream();
     public static ObservableField<String> isOWFound = new ObservableField<>();
     public Context mContext;
@@ -172,7 +173,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         State init = new State(INIT);
         State adapterDisabled = new State(ADAPTER_DISABLED);
-        State enablingAdapter = new State("ENABLING_ADAPTER");
+        State enablingAdapter = new State(ENABLING_ADAPTER);
         init.onEnter(onEnterInitAction());
         adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
         State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
