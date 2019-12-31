@@ -55,14 +55,12 @@ import de.artcom.hsm.StateMachine;
 import de.artcom.hsm.Sub;
 import de.artcom.hsm.TransitionKind;
 import timber.log.Timber;
-import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
 public class BluetoothUtilImpl implements BluetoothUtil {
 
     public static final String ADAPTER_DISABLED = "Adapter Disabled";
     public static final String ADAPTER_ENABLED = "Adapter Enabled";
-    public static final String CONNECT_TO_BOARD = "Connect to board";
     public static final String FOUND = "Found";
 
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
@@ -74,7 +72,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     public static final String ENABLE = "Enable";
     public static final String DISABLE = "Disable";
     public static final String SCANNING = "Scanning";
-    public static final String ENABLING_ADAPTER = "Enabling Adapter";
+    public static final String ONEWHEEL_FOUND = "Onewheel found";
     public static ByteArrayOutputStream inkey = new ByteArrayOutputStream();
     public static ObservableField<String> isOWFound = new ObservableField<>();
     public Context mContext;
@@ -159,12 +157,8 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         State init = new State(INIT);
         State adapterDisabled = new State(ADAPTER_DISABLED);
-        State enablingAdapter = new State(ENABLING_ADAPTER);
         init.onEnter(onEnterInitAction());
-        adapterDisabled.addHandler(CONNECT_TO_BOARD, enablingAdapter, TransitionKind.External);
         State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
-        enablingAdapter.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
-        enablingAdapter.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
         adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
@@ -173,7 +167,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
         init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
-        return new StateMachine(init, adapterDisabled, enablingAdapter, adapterEnabled);
+        return new StateMachine(init, adapterDisabled, adapterEnabled);
     }
 
     @NotNull
@@ -202,12 +196,20 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
 
     class ConnectionStateMachine {
+
+        public static final String DISCOVER_SERVICES = "Discover Services";
+
         public StateMachine createConnectionStateMachine() {
             State scanning = new State(SCANNING);
             scanning.onEnter(onEnterScanningAction());
+
+            State discoverServices = new State(DISCOVER_SERVICES);
+            scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
+
             State found = new State(FOUND);
-            scanning.addHandler(FOUND, found, TransitionKind.External);
-            return new StateMachine(scanning, found);
+            discoverServices.addHandler(FOUND, found, TransitionKind.External);
+
+            return new StateMachine(scanning, discoverServices, found);
         }
     }
 
@@ -562,6 +564,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
                 if (deviceName != null && (deviceName.startsWith("ow") || deviceName.startsWith("Onewheel"))) {
                     mRetryCount = 0;
+                    handleStateMachineEvent(ONEWHEEL_FOUND);
                     Timber.i("Looks like we found our OW device (" + deviceName + ") discovering services!");
                     connectToDevice(result.getDevice());
                 } else {
