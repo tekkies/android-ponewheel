@@ -903,11 +903,29 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         }
 
-        private class EnabledState extends Sub {
+        private class ConnectionEnabledState extends Sub {
             public static final String ID = "Connection Enabled";
 
-            public EnabledState(StateMachine bluetoothStateMachine) {
+            BroadcastReceiver receiver;
+
+            public ConnectionEnabledState(StateMachine bluetoothStateMachine) {
                 super(ID, bluetoothStateMachine);
+                onEnter(new ListenForBluetoothToggle());
+            }
+
+            private class ListenForBluetoothToggle extends Action {
+                @Override
+                public void run() {
+                    IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+                    receiver = setupAdapterListener();
+                    mainActivity.registerReceiver(receiver, filter);
+
+                    if (mBluetoothAdapter.enable()) {
+                        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
+                    } else {
+                        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
+                    }
+                }
             }
         }
 
@@ -930,30 +948,15 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
                 init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
-                return new EnabledState(new StateMachine(init, adapterDisabled, adapterEnabled));
+                return new ConnectionEnabledState(new StateMachine(init, adapterDisabled, adapterEnabled));
             }
 
             private class InitState extends State {
                 public static final String ID = "Init";
                 public InitState() {
                     super(ID);
-                    onEnter(new ListenForBluetoothToggle());
                 }
-                private class ListenForBluetoothToggle extends Action {
-                    BroadcastReceiver receiver;
-                    @Override
-                    public void run() {
-                        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-                        receiver = setupAdapterListener();
-                        mainActivity.registerReceiver(receiver, filter);
 
-                        if (mBluetoothAdapter.enable()) {
-                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
-                        } else {
-                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
-                        }
-                    }
-                }
             }
         }
     }
