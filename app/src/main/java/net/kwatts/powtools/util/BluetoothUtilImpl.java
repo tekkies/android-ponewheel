@@ -230,36 +230,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     }
 
 
-
-    private BroadcastReceiver setupAdapterListener() {
-        final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                final String action = intent.getAction();
-
-                if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                    final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
-                            BluetoothAdapter.ERROR);
-                    switch (state) {
-                        case BluetoothAdapter.STATE_OFF:
-                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
-                            break;
-                        case BluetoothAdapter.STATE_TURNING_OFF:
-                            //setButtonText("Turning Bluetooth off...");
-                            break;
-                        case BluetoothAdapter.STATE_ON:
-                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
-                            break;
-                        case BluetoothAdapter.STATE_TURNING_ON:
-                            //setButtonText("Turning Bluetooth on...");
-                            break;
-                    }
-                }
-            }
-        };
-        return mReceiver;
-    }
-
     public BluetoothUtil getInstance() {
         return this;
     }
@@ -914,6 +884,13 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 onExit(new StopListeningForBluetoothToggle());
             }
 
+            private class StopListeningForBluetoothToggle extends Action {
+                @Override
+                public void run() {
+                    mainActivity.unregisterReceiver(receiver);
+                }
+            }
+
             private class ListenForBluetoothToggle extends Action {
                 @Override
                 public void run() {
@@ -929,12 +906,35 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 }
             }
 
-            private class StopListeningForBluetoothToggle extends Action {
-                @Override
-                public void run() {
+            private BroadcastReceiver setupAdapterListener() {
+                final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        final String action = intent.getAction();
 
-                }
+                        if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                            final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
+                                    BluetoothAdapter.ERROR);
+                            switch (state) {
+                                case BluetoothAdapter.STATE_OFF:
+                                    handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
+                                    break;
+                                case BluetoothAdapter.STATE_TURNING_OFF:
+                                    //setButtonText("Turning Bluetooth off...");
+                                    break;
+                                case BluetoothAdapter.STATE_ON:
+                                    handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
+                                    break;
+                                case BluetoothAdapter.STATE_TURNING_ON:
+                                    //setButtonText("Turning Bluetooth on...");
+                                    break;
+                            }
+                        }
+                    }
+                };
+                return mReceiver;
             }
+
         }
 
         private class AdapterEnabledStateMachineBuilder {
