@@ -32,6 +32,8 @@ import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -193,7 +195,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     class ConnectionStateMachine {
 
-        public static final String DISCOVER_SERVICES = "Discover Services";
 
         public static final String ONEWHEEL_FOUND = "Onewheel found";
 
@@ -201,7 +202,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         public StateMachine createConnectionStateMachine() {
             State scanning = new ScanningState();
 
-            State discoverServices = new State(DISCOVER_SERVICES);
+            State discoverServices = new DiscoverSericesState();
             scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
 
             State found = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
@@ -267,9 +268,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                         if (deviceName != null && (deviceName.startsWith("ow") || deviceName.startsWith("Onewheel"))) {
                             mRetryCount = 0;
-                            handleStateMachineEvent(ConnectionStateMachine.ONEWHEEL_FOUND);
+                            handleStateMachineEvent(ConnectionStateMachine.ONEWHEEL_FOUND, newSimplePayload(result));
                             Timber.i("Looks like we found our OW device (" + deviceName + ") discovering services!");
-                            connectToDevice(result.getDevice());
                         } else {
                             Timber.d("onScanResult: found another device:" + deviceName + "-" + deviceAddress);
                         }
@@ -299,6 +299,30 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
 
         }
+
+        private class DiscoverSericesState extends State {
+            public static final String ID = "Discover Services";
+
+            public DiscoverSericesState() {
+                super(ID);
+                onEnter(new DiscoverServicesEnter());
+            }
+
+            private class DiscoverServicesEnter extends Action {
+                @Override
+                public void run() {
+                    ScanResult result = (ScanResult) mPayload.get(ScanResult.class.getSimpleName());
+                    connectToDevice(result.getDevice());
+                }
+            }
+        }
+    }
+
+    @NotNull
+    private HashMap<String, Object> newSimplePayload(Object result) {
+        HashMap<String, Object> payload = new HashMap<String, Object>(1);
+        payload.put(result.getClass().getSimpleName(),result);
+        return payload;
     }
 
 
@@ -553,7 +577,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
 
     private void handleStateMachineEvent(String event) {
-        stateMachine.handleEvent(event);
+        handleStateMachineEvent(event, new HashMap<String, Object>());
+    }
+
+    private void handleStateMachineEvent(String event, HashMap<String, Object> payload) {
+        stateMachine.handleEvent(event, payload);
         logTransition(event);
         updateStateDiagram();
     }
