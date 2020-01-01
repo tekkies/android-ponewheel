@@ -62,7 +62,7 @@ import timber.log.Timber;
 import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
-public class BluetoothUtilImpl implements BluetoothUtil {
+public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFilledCallback {
 
 
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
@@ -74,7 +74,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     Queue<BluetoothGattCharacteristic> characteristicReadQueue = new LinkedList<>();
     Queue<BluetoothGattDescriptor> descriptorWriteQueue = new LinkedList<>();
     private android.bluetooth.BluetoothAdapter mBluetoothAdapter;
-    private BluetoothLeScanner mBluetoothLeScanner;
     BluetoothGatt mGatt;
     BluetoothGattService owGatService;
 
@@ -113,11 +112,10 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         String cacheDir = mainActivity.getCacheDir().getAbsolutePath()+ File.separator+"stateDiagram";
         diagramCache = new DiagramCache(cacheDir, stateMachine)
                 .ensurePathExists()
-                .fill();
-        saveDiagramToSdCard();
+                .fill(this);
+
         updateStateDiagram();
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
-
 
         //final BluetoothManager manager = (BluetoothManager) mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
         //assert manager != null;
@@ -127,6 +125,14 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         handler = new Handler(Looper.getMainLooper());
         periodicCharacteristics();
     }
+
+    @Override
+    public void onDiagramCacheFilled(Boolean success) {
+        if(success) {
+            saveDiagramToSdCard();
+        }
+    }
+
 
     private void saveDiagramToSdCard() {
 
@@ -185,7 +191,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
 
 
-
     class ConnectionStateMachine {
 
         public static final String DISCOVER_SERVICES = "Discover Services";
@@ -208,9 +213,13 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         private class ScanningState extends State {
             public static final String ID = "Scanning";
 
+            private BluetoothLeScanner mBluetoothLeScanner;
+
+
             public ScanningState() {
                 super(ID);
                 onEnter(new StartScan());
+                onExit(new StopScan());
             }
 
             private class StartScan extends Action {
@@ -222,10 +231,73 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                             .setServiceUuid(ParcelUuid.fromString(OWDevice.OnewheelServiceUUID))
                             .build();
                     filters_v2.add(scanFilter);
-                    //c03f7c8d-5e96-4a75-b4b6-333d36230365
+                    mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
+                    settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
                     mBluetoothLeScanner.startScan(filters_v2, settings, mScanCallback);
                 }
+
             }
+
+            private class StopScan extends Action {
+                @Override
+                public void run() {
+                        mScanning = false;
+                        mBluetoothLeScanner.stopScan(mScanCallback);
+                        // added 10/23 to try cleanup
+                        mBluetoothLeScanner.flushPendingScanResults(mScanCallback);
+                }
+            }
+
+            private ScanCallback mScanCallback = new ScanCallback() {
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    String deviceName = result.getDevice().getName();
+                    String deviceAddress = result.getDevice().getAddress();
+
+                    Timber.i("ScanCallback.onScanResult: " + mScanResults.entrySet());
+                    if (!mScanResults.containsKey(deviceAddress)) {
+                        Timber.i("ScanCallback.deviceName:" + deviceName);
+                        mScanResults.put(deviceAddress, deviceName);
+
+                        if (deviceName == null) {
+                            Timber.i("Found " + deviceAddress);
+                        } else {
+                            Timber.i("Found " + deviceAddress + " (" + deviceName + ")");
+                        }
+
+                        if (deviceName != null && (deviceName.startsWith("ow") || deviceName.startsWith("Onewheel"))) {
+                            mRetryCount = 0;
+                            handleStateMachineEvent(ConnectionStateMachine.ONEWHEEL_FOUND);
+                            Timber.i("Looks like we found our OW device (" + deviceName + ") discovering services!");
+                            connectToDevice(result.getDevice());
+                        } else {
+                            Timber.d("onScanResult: found another device:" + deviceName + "-" + deviceAddress);
+                        }
+
+                    } else {
+                        Timber.d("onScanResult: mScanResults already had our key, still connecting to OW services or something is up with the BT stack.");
+                        //  Timber.d("onScanResult: mScanResults already had our key," + "deviceName=" + deviceName + ",deviceAddress=" + deviceAddress);
+                        // still connect
+                        //connectToDevice(result.getDevice());
+                    }
+
+
+                }
+
+                @Override
+                public void onBatchScanResults(List<ScanResult> results) {
+                    for (ScanResult sr : results) {
+                        Timber.i("ScanCallback.onBatchScanResults.each:" + sr.toString());
+                    }
+                }
+
+                @Override
+                public void onScanFailed(int errorCode) {
+                    Timber.e("ScanCallback.onScanFailed:" + errorCode);
+                }
+            };
+
+
         }
     }
 
@@ -287,7 +359,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                     mOWDevice.deviceMacAddress.get(),
                     mOWDevice.deviceMacName.get()
             );
-            scanLeDevice(false);
+            //AJWOZ scanLeDevice(false);
 
             // Stability updates per https://github.com/ponewheel/android-ponewheel/issues/86#issuecomment-460033659
             // Step 1: In OnServicesDiscovered, JUST read the firmware version.
@@ -497,73 +569,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         Timber.i(sb.toString());
     }
 
-    void scanLeDevice(final boolean enable) {
-        Timber.d("scanLeDevice enable = " + enable);
-        if(enable) {
 
-        }
-        else
-        {
-            stopScanLeDevice();
-        }
-        mainActivity.invalidateOptionsMenu();
-    }
-
-    private void stopScanLeDevice() {
-        mScanning = false;
-        mBluetoothLeScanner.stopScan(mScanCallback);
-        // added 10/23 to try cleanup
-        mBluetoothLeScanner.flushPendingScanResults(mScanCallback);
-    }
-
-    private ScanCallback mScanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            String deviceName = result.getDevice().getName();
-            String deviceAddress = result.getDevice().getAddress();
-
-            Timber.i("ScanCallback.onScanResult: " + mScanResults.entrySet());
-            if (!mScanResults.containsKey(deviceAddress)) {
-                Timber.i("ScanCallback.deviceName:" + deviceName);
-                mScanResults.put(deviceAddress, deviceName);
-
-                if (deviceName == null) {
-                    Timber.i("Found " + deviceAddress);
-                } else {
-                    Timber.i("Found " + deviceAddress + " (" + deviceName + ")");
-                }
-
-                if (deviceName != null && (deviceName.startsWith("ow") || deviceName.startsWith("Onewheel"))) {
-                    mRetryCount = 0;
-                    handleStateMachineEvent(ConnectionStateMachine.ONEWHEEL_FOUND);
-                    Timber.i("Looks like we found our OW device (" + deviceName + ") discovering services!");
-                    connectToDevice(result.getDevice());
-                } else {
-                    Timber.d("onScanResult: found another device:" + deviceName + "-" + deviceAddress);
-                }
-
-            } else {
-                Timber.d("onScanResult: mScanResults already had our key, still connecting to OW services or something is up with the BT stack.");
-                //  Timber.d("onScanResult: mScanResults already had our key," + "deviceName=" + deviceName + ",deviceAddress=" + deviceAddress);
-                // still connect
-                //connectToDevice(result.getDevice());
-            }
-
-
-        }
-
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            for (ScanResult sr : results) {
-                Timber.i("ScanCallback.onBatchScanResults.each:" + sr.toString());
-            }
-        }
-
-        @Override
-        public void onScanFailed(int errorCode) {
-            Timber.e("ScanCallback.onScanFailed:" + errorCode);
-        }
-    };
 
 
     public void connectToDevice(BluetoothDevice device) {
@@ -675,7 +681,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     @Override
     public void stopScanning() {
         handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.DISABLE_CONNECTION);
-        scanLeDevice(false);
+        //AJWOZ scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
             mGatt.close();
@@ -703,9 +709,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     @Override
     public void startScanning() {
-
-        mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
-        settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
         handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.ENABLE_CONNECTION);
         mainActivity.invalidateOptionsMenu();
     }
@@ -714,7 +717,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     @Override
     public void disconnect() {
         handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.DISABLE_CONNECTION);
-        scanLeDevice(false);
+        //AJWOZ scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
             mGatt.close();

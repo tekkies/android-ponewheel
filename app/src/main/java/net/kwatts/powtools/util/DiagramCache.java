@@ -30,6 +30,7 @@ public class DiagramCache {
     private String cacheFolder;
     private StateMachine stateMachine;
     private Map<String, String> stateIdToFilePath;
+    private CacheFilledCallback cacheFilledCallback;
 
     public DiagramCache(String location, StateMachine stateMachine) {
         this.cacheFolder = location;
@@ -37,17 +38,22 @@ public class DiagramCache {
         stateIdToFilePath = new HashMap<String, String>();
     }
 
-    public DiagramCache fill() {
-        new CacheFillTask(stateMachine).execute();
+    interface CacheFilledCallback {
+        void onDiagramCacheFilled(Boolean success);
+    }
+
+    public DiagramCache fill(CacheFilledCallback cacheFilledCallback) {
+        this.cacheFilledCallback = cacheFilledCallback;
+        new CacheFillTask(cacheFilledCallback).execute();
         return this;
     }
 
     private File getFileForUrl(String activeStateDiagramUrl) {
-        File result=null;
+        File result = null;
         String fileName = getFileName(activeStateDiagramUrl);
         String filePath = cacheFolder + File.separator + fileName;
         File file = new File(filePath);
-        if(!file.exists()) {
+        if (!file.exists()) {
             result = download(activeStateDiagramUrl, file);
         } else {
             result = file;
@@ -56,11 +62,11 @@ public class DiagramCache {
     }
 
     private File download(String activeStateDiagramUrl, File file) {
-        File result  = null;
+        File result = null;
         try {
             InputStream inputStream = new java.net.URL(activeStateDiagramUrl).openStream();
             FileOutputStream out = new FileOutputStream(file);
-            copyStream (inputStream, out);
+            copyStream(inputStream, out);
             out.close();
             result = file;
         } catch (Exception e) {
@@ -80,7 +86,7 @@ public class DiagramCache {
 
 
     private String getFileName(String activeStateDiagramUrl) {
-        return md5(activeStateDiagramUrl)+".png";
+        return md5(activeStateDiagramUrl) + ".png";
     }
 
     public String md5(String s) {
@@ -104,19 +110,18 @@ public class DiagramCache {
 
     public DiagramCache ensurePathExists() {
         File cacheFolder = new File(this.cacheFolder);
-        if(!cacheFolder.exists())
-        {
+        if (!cacheFolder.exists()) {
             cacheFolder.mkdirs();
         }
         return this;
     }
 
     public InputStream getActiveStateDiagram() {
-        InputStream diagramStream=null;
+        InputStream diagramStream = null;
         List<State> allActiveStates = stateMachine.getAllActiveStates();
         State currentActiveState = allActiveStates.get(allActiveStates.size() - 1);
         String diagramFilePath = getDiagramFilePath(currentActiveState);
-        if(diagramFilePath != null) {
+        if (diagramFilePath != null) {
             try {
                 diagramStream = new FileInputStream(diagramFilePath);
             } catch (FileNotFoundException e) {
@@ -127,16 +132,19 @@ public class DiagramCache {
     }
 
     private class CacheFillTask extends AsyncTask<String, Void, Boolean> {
-        public CacheFillTask(StateMachine stateMachine) {
+        private CacheFilledCallback cacheFilledCallback;
+
+        public CacheFillTask(CacheFilledCallback cacheFilledCallback) {
+            this.cacheFilledCallback = cacheFilledCallback;
         }
+
         protected Boolean doInBackground(String... urls) {
             Boolean success = true;
             List<State> leafStates = getLeafStates();
-            for (State leafState: leafStates) {
+            for (State leafState : leafStates) {
                 Timber.v(leafState.getId());
                 String diagramFilePath = getDiagramFilePath(leafState);
-                if(diagramFilePath == null)
-                {
+                if (diagramFilePath == null) {
                     success = false;
                 }
             }
@@ -144,7 +152,10 @@ public class DiagramCache {
         }
 
         protected void onPostExecute(Boolean success) {
-            if(!success) {
+            if(cacheFilledCallback != null) {
+                cacheFilledCallback.onDiagramCacheFilled(success);
+            }
+            if (!success) {
                 Toast.makeText(App.INSTANCE.getApplicationContext(), "Diagram cache failed to download.", Toast.LENGTH_LONG).show();
             }
         }
@@ -152,12 +163,11 @@ public class DiagramCache {
 
     public String getDiagramFilePath(State state) {
         String diagramFilePath = this.stateIdToFilePath.get(state.getId());
-        if(diagramFilePath == null) {
+        if (diagramFilePath == null) {
             String plantUml = new PlantUmlBuilder(stateMachine).highlight(state).build();
             String url = new PlantUmlUrlEncoder().getUrl(plantUml);
             File file = getFileForUrl(url);
-            if(file != null)
-            {
+            if (file != null) {
                 diagramFilePath = file.getAbsolutePath();
                 stateIdToFilePath.put(state.getId(), diagramFilePath);
 
@@ -169,8 +179,8 @@ public class DiagramCache {
     private List<State> getLeafStates() {
         List<State> allStates = stateMachine.getDescendantStates();
         List<State> leafStates = new ArrayList<State>();
-        for (State state:allStates) {
-            if(state.getDescendantStates().size() == 0) {
+        for (State state : allStates) {
+            if (state.getDescendantStates().size() == 0) {
                 leafStates.add(state);
             }
         }
