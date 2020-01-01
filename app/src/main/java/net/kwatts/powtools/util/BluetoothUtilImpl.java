@@ -632,7 +632,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         public StateMachine createConnectionStateMachine() {
             State scanning = new ScanningState();
 
-            State discoverServices = new DiscoverSericesState(new DiscoverSericesStateMachine());
+            State discoverServices = new DiscoverSericesStateBuilder().build();
             scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
 
             State found = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
@@ -733,8 +733,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         private class DiscoverSericesState extends Sub {
             public static final String ID = "Discover Services";
 
-            public DiscoverSericesState(StateMachine stateMachine) {
-                super(ID, stateMachine);
+            public DiscoverSericesState(State connecting, State sevices_discovered) {
+                super(ID, connecting, sevices_discovered);
                 onEnter(new TryToConnect());
             }
 
@@ -987,6 +987,24 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             };
 
+        }
+
+        private class DiscoverSericesStateBuilder {
+            public State build() {
+                return new DiscoverSericesState(new ConnectingState(), new ServicesDiscoveredState());
+            }
+
+            private class ConnectingState extends State {
+                public ConnectingState() {
+                    super("Connecting");
+                }
+            }
+
+            private class ServicesDiscoveredState extends State {
+                public ServicesDiscoveredState() {
+                    super("Sevices Discovered");
+                }
+            }
         }
     }
 
