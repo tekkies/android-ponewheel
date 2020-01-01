@@ -879,14 +879,14 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         private class AdapterEnabledStateMachineBuilder {
 
-            public static final String INIT = "Init";
+
             public static final String ADAPTER_DISABLED = "Adapter Disabled";
             public static final String ADAPTER_ENABLED = "Adapter Enabled";
             public static final String TBC = "TBC";
 
             public State build() {
 
-                State init = new State(INIT);
+                State init = new InitState();
                 State adapterDisabled = new State(ADAPTER_DISABLED);
                 init.onEnter(onEnterInitAction());
                 State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
@@ -901,6 +901,12 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 return new EnabledState(new StateMachine(init, adapterDisabled, adapterEnabled));
             }
 
+            private class InitState extends State {
+                public static final String ID = "Init";
+                public InitState() {
+                    super(ID);
+                }
+            }
         }
     }
 }
