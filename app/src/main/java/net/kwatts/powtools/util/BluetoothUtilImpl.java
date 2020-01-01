@@ -911,6 +911,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
             public ConnectionEnabledState(StateMachine bluetoothStateMachine) {
                 super(ID, bluetoothStateMachine);
                 onEnter(new ListenForBluetoothToggle());
+                onExit(new StopListeningForBluetoothToggle());
             }
 
             private class ListenForBluetoothToggle extends Action {
@@ -925,6 +926,13 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                     } else {
                         handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
                     }
+                }
+            }
+
+            private class StopListeningForBluetoothToggle extends Action {
+                @Override
+                public void run() {
+
                 }
             }
         }
