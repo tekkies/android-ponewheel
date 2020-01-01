@@ -40,6 +40,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.FileChannel;
@@ -66,6 +67,7 @@ import de.artcom.hsm.StateMachine;
 import de.artcom.hsm.Sub;
 import de.artcom.hsm.TransitionKind;
 import timber.log.Timber;
+import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
 public class BluetoothUtilImpl implements BluetoothUtil {
@@ -138,14 +140,15 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     private void saveDiagramToSdCard() {
 
+
         List<State> allActiveStates = stateMachine.getAllActiveStates();
-        State currentState = allActiveStates.get(allActiveStates.size()-1);
+        State currentState = allActiveStates.get(allActiveStates.size() - 1);
         String sourcePath = diagramCache.getDiagramFilePath(currentState);
         File sdFolder = Environment.getExternalStorageDirectory();
-        String destFile = sdFolder + File.separator + "ponewheel-state.png";
+        String pngFile = sdFolder + File.separator + "ponewheel-state.png";
         try {
             FileInputStream inStream = new FileInputStream(sourcePath);
-            FileOutputStream outStream = new FileOutputStream(destFile);
+            FileOutputStream outStream = new FileOutputStream(pngFile);
             FileChannel inChannel = inStream.getChannel();
             FileChannel outChannel = outStream.getChannel();
             inChannel.transferTo(0, inChannel.size(), outChannel);
@@ -155,6 +158,27 @@ public class BluetoothUtilImpl implements BluetoothUtil {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        String plantUml = new PlantUmlBuilder(stateMachine).build();
+        String plantUmlFile = sdFolder + File.separator + "ponewheel-state.plantuml";
+        FileOutputStream stream = null;
+        try {
+            stream = new FileOutputStream(plantUmlFile);
+            stream.write(plantUml.getBytes());
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+        } finally {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
