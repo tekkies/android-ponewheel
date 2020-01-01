@@ -61,7 +61,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     public static final String ADAPTER_DISABLED = "Adapter Disabled";
     public static final String ADAPTER_ENABLED = "Adapter Enabled";
-    public static final String FOUND = "Found";
+    public static final String TBC = "TBC";
 
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
 
@@ -95,7 +95,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     StateMachine stateMachine; //see docs of https://github.com/artcom/hsm-cs
     private DiagramCache diagramCache;
-    private ConnectionEnabledStateMachine connectionEnabledStateMachine;
+    private ConnectionEnabledStateMachineBuilder connectionEnabledStateMachineBuilder;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -108,8 +108,8 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
 
-        connectionEnabledStateMachine = new ConnectionEnabledStateMachine(this);
-        stateMachine = connectionEnabledStateMachine.createStateMachine();
+        connectionEnabledStateMachineBuilder = new ConnectionEnabledStateMachineBuilder(this);
+        stateMachine = connectionEnabledStateMachineBuilder.build();
 
         String cacheDir = mainActivity.getCacheDir().getAbsolutePath()+ File.separator+"stateDiagram";
         diagramCache = new DiagramCache(cacheDir, stateMachine)
@@ -140,24 +140,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         return url;
     }
 
-
-    private StateMachine createBluetoothStateMachine() {
-
-
-        State init = new State(INIT);
-        State adapterDisabled = new State(ADAPTER_DISABLED);
-        init.onEnter(onEnterInitAction());
-        State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
-
-        adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
-
-        adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
-
-        init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
-        init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
-
-        return new StateMachine(init, adapterDisabled, adapterEnabled);
-    }
 
     @NotNull
     private Action onEnterInitAction() {
@@ -195,8 +177,8 @@ public class BluetoothUtilImpl implements BluetoothUtil {
             State discoverServices = new State(DISCOVER_SERVICES);
             scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
 
-            State found = new State(FOUND);
-            discoverServices.addHandler(FOUND, found, TransitionKind.External);
+            State found = new State(TBC);
+            discoverServices.addHandler(TBC, found, TransitionKind.External);
 
             return new StateMachine(scanning, discoverServices, found);
         }
@@ -692,7 +674,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     @Override
     public void stopScanning() {
-        handleStateMachineEvent(ConnectionEnabledStateMachine.DISABLE_CONNECTION);
+        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.DISABLE_CONNECTION);
         scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
@@ -724,14 +706,14 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
         settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-        handleStateMachineEvent(ConnectionEnabledStateMachine.ENABLE_CONNECTION);
+        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.ENABLE_CONNECTION);
         mainActivity.invalidateOptionsMenu();
     }
 
 
     @Override
     public void disconnect() {
-        handleStateMachineEvent(ConnectionEnabledStateMachine.DISABLE_CONNECTION);
+        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.DISABLE_CONNECTION);
         scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
@@ -850,10 +832,10 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     @Override
     public boolean isConectionEnabled() {
-        return stateMachine.getAllActiveStates().contains(connectionEnabledStateMachine.enabled);
+        return stateMachine.getAllActiveStates().contains(connectionEnabledStateMachineBuilder.enabled);
     }
 
-    private class ConnectionEnabledStateMachine {
+    private class ConnectionEnabledStateMachineBuilder {
 
         public static final String ENABLE_CONNECTION = "Enable connection";
         public static final String DISABLE_CONNECTION = "Disable connection";
@@ -861,14 +843,17 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         public State enabled;
         private DisabledState disabled;
 
-        public ConnectionEnabledStateMachine(BluetoothUtilImpl bluetoothUtil) {
+
+        public ConnectionEnabledStateMachineBuilder(BluetoothUtilImpl bluetoothUtil) {
 
         }
 
-        private StateMachine createStateMachine() {
+        private StateMachine build() {
 
             disabled = new DisabledState();
-            enabled = new EnabledState(createBluetoothStateMachine());
+
+
+            enabled = new AdapterEnabledStateMachineBuilder().build();
 
             disabled.addHandler(ENABLE_CONNECTION, enabled, TransitionKind.External);
             enabled.addHandler(DISABLE_CONNECTION, disabled, TransitionKind.External);
@@ -894,6 +879,26 @@ public class BluetoothUtilImpl implements BluetoothUtil {
             public EnabledState(StateMachine bluetoothStateMachine) {
                 super(ID, bluetoothStateMachine);
             }
+        }
+
+        private class AdapterEnabledStateMachineBuilder {
+            public State build() {
+
+                State init = new State(INIT);
+                State adapterDisabled = new State(ADAPTER_DISABLED);
+                init.onEnter(onEnterInitAction());
+                State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
+
+                adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+
+                adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+
+                init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+                init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+
+                return new EnabledState(new StateMachine(init, adapterDisabled, adapterEnabled));
+            }
+
         }
     }
 }
