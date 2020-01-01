@@ -865,8 +865,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
                 InitState init = new InitState();
                 State adapterDisabled = new State(ADAPTER_DISABLED);
-
-                init.onEnter(init.onEnterInitAction());
                 State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
 
                 adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
@@ -883,7 +881,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 public static final String ID = "Init";
                 public InitState() {
                     super(ID);
-
+                    onEnter(onEnterInitAction());
                 }
 
                 @NotNull
