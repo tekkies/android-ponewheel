@@ -856,7 +856,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     }
 
     private class ConnectionEnabledStateMachine {
-        public static final String CONNECTION_ENABLED = "Connection Enabled";
 
 
         public State enabled;
@@ -869,7 +868,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         private StateMachine createTopLevelStateMachine() {
 
             State disabled = new DisabledState();
-            enabled = new Sub(CONNECTION_ENABLED, createBluetoothStateMachine());
+            enabled = new EnabledState(createBluetoothStateMachine());
             disabled.addHandler(ENABLE, enabled, TransitionKind.External);
             enabled.addHandler(DISABLE, disabled, TransitionKind.External);
             StateMachine stateMachine = new StateMachine(disabled, enabled);
@@ -881,12 +880,16 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         private class DisabledState extends State {
             public static final String ID = "Connection Disabled";
 
-            public DisabledState(String connectionDisabled) {
-                super(ID);
-            }
-
             public DisabledState() {
                 super(ID);
+            }
+        }
+
+        private class EnabledState extends Sub {
+            public static final String ID = "Connection Enabled";
+
+            public EnabledState(StateMachine bluetoothStateMachine) {
+                super(ID, bluetoothStateMachine);
             }
         }
     }
