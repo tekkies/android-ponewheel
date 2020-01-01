@@ -150,7 +150,7 @@ public class DiagramCache {
         }
     }
 
-    private String getDiagramFilePath(State state) {
+    public String getDiagramFilePath(State state) {
         String diagramFilePath = this.stateIdToFilePath.get(state.getId());
         if(diagramFilePath == null) {
             String plantUml = new PlantUmlBuilder(stateMachine).highlight(state).build();

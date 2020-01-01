@@ -18,6 +18,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Environment;
 import android.os.ParcelUuid;
 import android.os.Handler;
 import android.os.Looper;
@@ -34,7 +35,17 @@ import net.kwatts.powtools.model.Session;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -111,6 +122,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         diagramCache = new DiagramCache(cacheDir, stateMachine)
                 .ensurePathExists()
                 .fill();
+        saveDiagramToSdCard();
         updateStateDiagram();
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
 
@@ -124,6 +136,27 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         periodicCharacteristics();
     }
 
+    private void saveDiagramToSdCard() {
+
+        List<State> allActiveStates = stateMachine.getAllActiveStates();
+        State currentState = allActiveStates.get(allActiveStates.size()-1);
+        String sourcePath = diagramCache.getDiagramFilePath(currentState);
+        File sdFolder = Environment.getExternalStorageDirectory();
+        String destFile = sdFolder + File.separator + "ponewheel-state.png";
+        try {
+            FileInputStream inStream = new FileInputStream(sourcePath);
+            FileOutputStream outStream = new FileOutputStream(destFile);
+            FileChannel inChannel = inStream.getChannel();
+            FileChannel outChannel = outStream.getChannel();
+            inChannel.transferTo(0, inChannel.size(), outChannel);
+            inStream.close();
+            outStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 
     private void updateStateDiagram() {
@@ -814,7 +847,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         public static final String DISABLE_CONNECTION = "Disable connection";
 
         public State enabled;
-        private DisabledState disabled;
+        public DisabledState disabled;
 
 
         public ConnectionEnabledStateMachineBuilder(BluetoothUtilImpl bluetoothUtil) {
