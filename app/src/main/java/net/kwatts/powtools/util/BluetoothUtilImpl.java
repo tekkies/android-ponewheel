@@ -632,7 +632,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         public StateMachine createConnectionStateMachine() {
             State scanning = new ScanningState();
 
-            State discoverServices = new DiscoverSericesState();
+            State discoverServices = new DiscoverSericesState(new DiscoverSericesStateMachine());
             scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
 
             State found = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
@@ -730,25 +730,21 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         }
 
-        private class DiscoverSericesState extends State {
+        private class DiscoverSericesState extends Sub {
             public static final String ID = "Discover Services";
 
-            public DiscoverSericesState() {
-                super(ID);
-                onEnter(new DiscoverServicesEnter());
+            public DiscoverSericesState(StateMachine stateMachine) {
+                super(ID, stateMachine);
+                onEnter(new TryToConnect());
             }
 
-            private class DiscoverServicesEnter extends Action {
+            private class TryToConnect extends Action {
                 @Override
                 public void run() {
                     ScanResult result = (ScanResult) mPayload.get(ScanResult.class.getSimpleName());
-                    connectToDevice(result.getDevice());
+                    BluetoothDevice device = result.getDevice();
+                    device.connectGatt(mainActivity, false, mGattCallback);
                 }
-            }
-
-            public void connectToDevice(BluetoothDevice device) {
-                Timber.d("connectToDevice:" + device.getName());
-                device.connectGatt(mainActivity, false, mGattCallback);
             }
 
             private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {

@@ -50,3 +50,7 @@ Animated state machine
 Enter actions showing
 
 ![](doc/progress-011.png)
+
+Discovering services 
+
+![](doc/progress-012.png)
