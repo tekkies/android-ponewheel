@@ -735,19 +735,10 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             public DiscoverSericesState(State connecting, State sevices_discovered) {
                 super(ID, connecting, sevices_discovered);
-                onEnter(new TryToConnect());
+
             }
 
-            private class TryToConnect extends Action {
-                @Override
-                public void run() {
-                    ScanResult result = (ScanResult) mPayload.get(ScanResult.class.getSimpleName());
-                    BluetoothDevice device = result.getDevice();
-                    device.connectGatt(mainActivity, false, mGattCallback);
-                }
-            }
-
-            private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+            private final BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
 
                 @Override
                 public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -991,12 +982,32 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         private class DiscoverSericesStateBuilder {
             public State build() {
-                return new DiscoverSericesState(new ConnectingState(), new ServicesDiscoveredState());
+                ConnectingState connectingState = new ConnectingState();
+                DiscoverSericesState discoverSericesState = new DiscoverSericesState(connectingState, new ServicesDiscoveredState());
+                connectingState.inject(discoverSericesState.bluetoothGattCallback);
+                return discoverSericesState;
             }
 
             private class ConnectingState extends State {
+                private BluetoothGattCallback bluetoothGattCallback;
+
                 public ConnectingState() {
                     super("Connecting");
+                    onEnter(new TryToConnect());
+                }
+
+                public void inject(BluetoothGattCallback bluetoothGattCallback) {
+
+                    this.bluetoothGattCallback = bluetoothGattCallback;
+                }
+
+                private class TryToConnect extends Action {
+                    @Override
+                    public void run() {
+                        ScanResult result = (ScanResult) mPayload.get(ScanResult.class.getSimpleName());
+                        BluetoothDevice device = result.getDevice();
+                        device.connectGatt(mainActivity, false, bluetoothGattCallback);
+                    }
                 }
             }
 
