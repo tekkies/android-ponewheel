@@ -39,14 +39,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -913,7 +907,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         private class AdapterEnabledStateMachineBuilder {
 
-
             public static final String ADAPTER_DISABLED = "Adapter Disabled";
             public static final String ADAPTER_ENABLED = "Adapter Enabled";
             public static final String TBC = "TBC";
@@ -938,30 +931,25 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 public static final String ID = "Init";
                 public InitState() {
                     super(ID);
-                    onEnter(onEnterInitAction());
+                    onEnter(new ListenForBluetoothToggle());
                 }
+                private class ListenForBluetoothToggle extends Action {
+                    BroadcastReceiver receiver;
+                    @Override
+                    public void run() {
+                        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+                        receiver = setupAdapterListener();
+                        mainActivity.registerReceiver(receiver, filter);
 
-                @NotNull
-                public Action onEnterInitAction() {
-                    return new Action() {
-                        BroadcastReceiver receiver;
-                        @Override
-                        public void run() {
-
-                            IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-                            receiver = setupAdapterListener();
-                            mainActivity.registerReceiver(receiver, filter);
-
-                            if (mBluetoothAdapter.enable()) {
-                                handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
-                            } else {
-                                handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
-                            }
+                        if (mBluetoothAdapter.enable()) {
+                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
+                        } else {
+                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
                         }
-                    };
+                    }
                 }
-
             }
         }
     }
+
 }

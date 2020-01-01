@@ -39,6 +39,14 @@ Try to manage comms with a hierarchical state machine
 
 > Progress
 
+First state machine
+
 ![](doc/progress-001.png)
 
+Animated state machine
+
 ![](doc/progress-010.png)
+
+Enter actions showing
+
+![](doc/progress-011.png)
