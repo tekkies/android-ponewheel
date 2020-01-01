@@ -19,4 +19,6 @@ public interface BluetoothUtil {
     int getIsUnlocked();
     boolean isPeriodicChallengeRequired();
     void whenActuallyConnected();
+
+    boolean isConectionEnabled();
 }

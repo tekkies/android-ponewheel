@@ -438,23 +438,49 @@ public class MainActivity extends AppCompatActivity implements
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
 
-        if (mOWDevice.isConnected.get()) {
-            menu.findItem(R.id.menu_disconnect).setVisible(true);
-            menu.findItem(R.id.menu_stop).setVisible(false);
-            menu.findItem(R.id.menu_scan).setVisible(false);
-        } else if (!getBluetoothUtil().isScanning()) {
-            menu.findItem(R.id.menu_stop).setVisible(false);
-            menu.findItem(R.id.menu_scan).setVisible(true);
-            menu.findItem(R.id.menu_disconnect).setVisible(false);
-            menu.findItem(R.id.menu_refresh).setActionView(null);
-        } else {
-            menu.findItem(R.id.menu_stop).setVisible(true);
-            menu.findItem(R.id.menu_scan).setVisible(false);
-            menu.findItem(R.id.menu_disconnect).setVisible(false);
-            menu.findItem(R.id.menu_refresh).setActionView(R.layout.actionbar_progress_indeterminate);
-        }
+        enableOptionsMenu(menu);
         return true;
     }
+
+    private void enableOptionsMenu(Menu menu) {
+        if(getBluetoothUtil().isConectionEnabled())
+        {
+            showConnectedMenus(menu);
+        } else {
+            showConnectionDisabledMenu(menu);
+        }
+
+
+        /* AJREDO
+        if (mOWDevice.isConnected.get()) {
+            showConnectedMenus(menu);
+        } else if (!getBluetoothUtil().isScanning()) {
+            showConnectionDisabledMenu(menu);
+        } else {
+            showScanningMenus(menu);
+        }*/
+    }
+
+    private void showConnectionDisabledMenu(Menu menu) {
+        menu.findItem(R.id.menu_stop).setVisible(false);
+        menu.findItem(R.id.menu_scan).setVisible(true);
+        menu.findItem(R.id.menu_disconnect).setVisible(false);
+        menu.findItem(R.id.menu_refresh).setActionView(null);
+    }
+
+    private void showScanningMenus(Menu menu) {
+        menu.findItem(R.id.menu_stop).setVisible(true);
+        menu.findItem(R.id.menu_scan).setVisible(false);
+        menu.findItem(R.id.menu_disconnect).setVisible(false);
+        menu.findItem(R.id.menu_refresh).setActionView(R.layout.actionbar_progress_indeterminate);
+    }
+
+    private void showConnectedMenus(Menu menu) {
+        menu.findItem(R.id.menu_disconnect).setVisible(true);
+        menu.findItem(R.id.menu_stop).setVisible(false);
+        menu.findItem(R.id.menu_scan).setVisible(false);
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {

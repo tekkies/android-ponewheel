@@ -126,10 +126,10 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     private void createTopLevelStateMachine() {
 
         State disabled = new State(DISABLED);
-        State enabled = new Sub(ENABLED, createBluetoothStateMachine());
-        disabled.addHandler(ENABLE, enabled, TransitionKind.External);
-        enabled.addHandler(DISABLE, disabled, TransitionKind.External);
-        stateMachine = new StateMachine(disabled, enabled);
+        ConnectionEnabledStateMachine.enabled = new Sub(ENABLED, createBluetoothStateMachine());
+        disabled.addHandler(ENABLE, ConnectionEnabledStateMachine.enabled, TransitionKind.External);
+        ConnectionEnabledStateMachine.enabled.addHandler(DISABLE, disabled, TransitionKind.External);
+        stateMachine = new StateMachine(disabled, ConnectionEnabledStateMachine.enabled);
         stateMachine.init();
         //PlantUmlRender.render(plantUml);
 
@@ -529,7 +529,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     void scanLeDevice(final boolean enable) {
         Timber.d("scanLeDevice enable = " + enable);
         if(enable) {
-            handleStateMachineEvent(ENABLE);
+
         }
         else
         {
@@ -703,6 +703,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     @Override
     public void stopScanning() {
+        handleStateMachineEvent(DISABLE);
         scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
@@ -731,14 +732,17 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     @Override
     public void startScanning() {
+
         mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
         settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-        scanLeDevice(true);
+        handleStateMachineEvent(ENABLE);
+        mainActivity.invalidateOptionsMenu();
     }
 
 
     @Override
     public void disconnect() {
+        handleStateMachineEvent(DISABLE);
         scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
@@ -853,5 +857,14 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         walkReadQueue(1);
 
         isUnlocked = 2;
+    }
+
+    @Override
+    public boolean isConectionEnabled() {
+        return stateMachine.getAllActiveStates().contains(ConnectionEnabledStateMachine.enabled);
+    }
+
+    private static class ConnectionEnabledStateMachine {
+        public static State enabled;
     }
 }

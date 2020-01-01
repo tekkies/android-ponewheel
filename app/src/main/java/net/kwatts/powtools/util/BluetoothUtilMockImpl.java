@@ -187,6 +187,11 @@ public class BluetoothUtilMockImpl implements BluetoothUtil{
 
     }
 
+    @Override
+    public boolean isConectionEnabled() {
+        throw new RuntimeException("Not Implemented");
+    }
+
     private void updateLog(String s) {
         mainActivity.updateLog("mock: " + s);
     }
