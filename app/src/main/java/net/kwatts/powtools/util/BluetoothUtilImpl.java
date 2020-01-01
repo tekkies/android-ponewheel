@@ -99,6 +99,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     StateMachine stateMachine; //see docs of https://github.com/artcom/hsm-cs
     private DiagramCache diagramCache;
+    private ConnectionEnabledStateMachine connectionEnabledStateMachine;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -111,7 +112,15 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
 
-        createTopLevelStateMachine();
+        connectionEnabledStateMachine = new ConnectionEnabledStateMachine(this);
+        stateMachine = connectionEnabledStateMachine.createTopLevelStateMachine();
+
+        String cacheDir = mainActivity.getCacheDir().getAbsolutePath()+ File.separator+"stateDiagram";
+        diagramCache = new DiagramCache(cacheDir, stateMachine)
+                .ensurePathExists()
+                .fill();
+        updateStateDiagram();
+        Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
 
 
         //final BluetoothManager manager = (BluetoothManager) mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -123,23 +132,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         periodicCharacteristics();
     }
 
-    private void createTopLevelStateMachine() {
 
-        State disabled = new State(DISABLED);
-        ConnectionEnabledStateMachine.enabled = new Sub(ENABLED, createBluetoothStateMachine());
-        disabled.addHandler(ENABLE, ConnectionEnabledStateMachine.enabled, TransitionKind.External);
-        ConnectionEnabledStateMachine.enabled.addHandler(DISABLE, disabled, TransitionKind.External);
-        stateMachine = new StateMachine(disabled, ConnectionEnabledStateMachine.enabled);
-        stateMachine.init();
-        //PlantUmlRender.render(plantUml);
-
-        String cacheDir = mainActivity.getCacheDir().getAbsolutePath()+File.separator+"stateDiagram";
-        diagramCache = new DiagramCache(cacheDir, stateMachine)
-                .ensurePathExists()
-                .fill();
-        updateStateDiagram();
-        Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
-    }
 
     private void updateStateDiagram() {
         mainActivity.updateStateMachine(diagramCache);
@@ -861,10 +854,28 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
     @Override
     public boolean isConectionEnabled() {
-        return stateMachine.getAllActiveStates().contains(ConnectionEnabledStateMachine.enabled);
+        return stateMachine.getAllActiveStates().contains(connectionEnabledStateMachine.enabled);
     }
 
-    private static class ConnectionEnabledStateMachine {
-        public static State enabled;
+    private class ConnectionEnabledStateMachine {
+        public State enabled;
+
+        public ConnectionEnabledStateMachine(BluetoothUtilImpl bluetoothUtil) {
+
+        }
+
+
+        private StateMachine createTopLevelStateMachine() {
+
+            State disabled = new State(DISABLED);
+            enabled = new Sub(ENABLED, createBluetoothStateMachine());
+            disabled.addHandler(ENABLE, enabled, TransitionKind.External);
+            enabled.addHandler(DISABLE, disabled, TransitionKind.External);
+            StateMachine stateMachine = new StateMachine(disabled, enabled);
+            stateMachine.init();
+            return stateMachine;
+        }
+
+
     }
 }
