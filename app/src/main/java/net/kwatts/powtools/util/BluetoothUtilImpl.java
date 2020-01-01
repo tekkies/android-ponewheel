@@ -32,8 +32,6 @@ import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -70,8 +68,6 @@ public class BluetoothUtilImpl implements BluetoothUtil {
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
 
     private static final int REQUEST_ENABLE_BT = 1;
-    public static final String SCANNING = "Scanning";
-    public static final String ONEWHEEL_FOUND = "Onewheel found";
     public static ByteArrayOutputStream inkey = new ByteArrayOutputStream();
     public static ObservableField<String> isOWFound = new ObservableField<>();
     public Context mContext;
@@ -194,9 +190,11 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
         public static final String DISCOVER_SERVICES = "Discover Services";
 
+        public static final String ONEWHEEL_FOUND = "Onewheel found";
+
+
         public StateMachine createConnectionStateMachine() {
-            State scanning = new State(SCANNING);
-            scanning.onEnter(onEnterScanningAction());
+            State scanning = new ScanningState();
 
             State discoverServices = new State(DISCOVER_SERVICES);
             scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
@@ -206,24 +204,32 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
             return new StateMachine(scanning, discoverServices, found);
         }
+
+        private class ScanningState extends State {
+            public static final String ID = "Scanning";
+
+            public ScanningState() {
+                super(ID);
+                onEnter(new StartScan());
+            }
+
+            private class StartScan extends Action {
+                @Override
+                public void run() {
+                    mScanning = true;
+                    List<ScanFilter> filters_v2 = new ArrayList<>();
+                    ScanFilter scanFilter = new ScanFilter.Builder()
+                            .setServiceUuid(ParcelUuid.fromString(OWDevice.OnewheelServiceUUID))
+                            .build();
+                    filters_v2.add(scanFilter);
+                    //c03f7c8d-5e96-4a75-b4b6-333d36230365
+                    mBluetoothLeScanner.startScan(filters_v2, settings, mScanCallback);
+                }
+            }
+        }
     }
 
-    @NotNull
-    private Action onEnterScanningAction() {
-        return new Action() {
-            @Override
-            public void run() {
-                mScanning = true;
-                List<ScanFilter> filters_v2 = new ArrayList<>();
-                ScanFilter scanFilter = new ScanFilter.Builder()
-                        .setServiceUuid(ParcelUuid.fromString(OWDevice.OnewheelServiceUUID))
-                        .build();
-                filters_v2.add(scanFilter);
-                //c03f7c8d-5e96-4a75-b4b6-333d36230365
-                mBluetoothLeScanner.startScan(filters_v2, settings, mScanCallback);
-            }
-        };
-    }
+
 
     private BroadcastReceiver setupAdapterListener() {
         final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -559,7 +565,7 @@ public class BluetoothUtilImpl implements BluetoothUtil {
 
                 if (deviceName != null && (deviceName.startsWith("ow") || deviceName.startsWith("Onewheel"))) {
                     mRetryCount = 0;
-                    handleStateMachineEvent(ONEWHEEL_FOUND);
+                    handleStateMachineEvent(ConnectionStateMachine.ONEWHEEL_FOUND);
                     Timber.i("Looks like we found our OW device (" + deviceName + ") discovering services!");
                     connectToDevice(result.getDevice());
                 } else {
