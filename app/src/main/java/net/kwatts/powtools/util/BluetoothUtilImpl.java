@@ -59,14 +59,10 @@ import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
 public class BluetoothUtilImpl implements BluetoothUtil {
 
-    public static final String ADAPTER_DISABLED = "Adapter Disabled";
-    public static final String ADAPTER_ENABLED = "Adapter Enabled";
-    public static final String TBC = "TBC";
 
     private static final String TAG = BluetoothUtilImpl.class.getSimpleName();
 
     private static final int REQUEST_ENABLE_BT = 1;
-    public static final String INIT = "Init";
     public static final String SCANNING = "Scanning";
     public static final String ONEWHEEL_FOUND = "Onewheel found";
     public static ByteArrayOutputStream inkey = new ByteArrayOutputStream();
@@ -155,9 +151,9 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                 mainActivity.registerReceiver(receiver, filter);
 
                 if (mBluetoothAdapter.enable()) {
-                    handleStateMachineEvent(ADAPTER_ENABLED);
+                    handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
                 } else {
-                    handleStateMachineEvent(ADAPTER_DISABLED);
+                    handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
                 }
             }
 
@@ -177,8 +173,8 @@ public class BluetoothUtilImpl implements BluetoothUtil {
             State discoverServices = new State(DISCOVER_SERVICES);
             scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
 
-            State found = new State(TBC);
-            discoverServices.addHandler(TBC, found, TransitionKind.External);
+            State found = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
+            discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, found, TransitionKind.External);
 
             return new StateMachine(scanning, discoverServices, found);
         }
@@ -212,13 +208,13 @@ public class BluetoothUtilImpl implements BluetoothUtil {
                             BluetoothAdapter.ERROR);
                     switch (state) {
                         case BluetoothAdapter.STATE_OFF:
-                            handleStateMachineEvent(ADAPTER_DISABLED);
+                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
                             break;
                         case BluetoothAdapter.STATE_TURNING_OFF:
                             //setButtonText("Turning Bluetooth off...");
                             break;
                         case BluetoothAdapter.STATE_ON:
-                            handleStateMachineEvent(ADAPTER_ENABLED);
+                            handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
                             break;
                         case BluetoothAdapter.STATE_TURNING_ON:
                             //setButtonText("Turning Bluetooth on...");
@@ -882,6 +878,12 @@ public class BluetoothUtilImpl implements BluetoothUtil {
         }
 
         private class AdapterEnabledStateMachineBuilder {
+
+            public static final String INIT = "Init";
+            public static final String ADAPTER_DISABLED = "Adapter Disabled";
+            public static final String ADAPTER_ENABLED = "Adapter Enabled";
+            public static final String TBC = "TBC";
+
             public State build() {
 
                 State init = new State(INIT);
