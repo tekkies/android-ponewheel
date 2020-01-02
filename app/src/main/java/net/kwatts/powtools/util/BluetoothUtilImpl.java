@@ -595,7 +595,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             public static final String ADAPTER_DISABLED = "Adapter Disabled";
             public static final String ADAPTER_ENABLED = "Adapter Enabled";
-            public static final String NOT_ONEWHEEL = "Not Onewheel";
             public static final String TBC = "TBC";
 
             public State build() {
@@ -604,18 +603,16 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 State adapterDisabled = new State(ADAPTER_DISABLED);
                 ConnectionStateMachine connectionStateMachine = new ConnectionStateMachine();
                 State adapterEnabledState = new Sub(ADAPTER_ENABLED, connectionStateMachine.createConnectionStateMachine());
-                State notOnewheel = new State("Not Onewheel");
 
 
                 adapterEnabledState.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
-                adapterEnabledState.addHandler(NOT_ONEWHEEL, notOnewheel, TransitionKind.External);
 
                 adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
 
                 init.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
                 init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
-                return new ConnectionEnabledState(new StateMachine(init, adapterDisabled, adapterEnabledState, notOnewheel));
+                return new ConnectionEnabledState(new StateMachine(init, adapterDisabled, adapterEnabledState));
             }
 
             private class InitState extends State {
@@ -758,7 +755,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
 
-                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECT_FAIL);
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.TODO_GATT_CONNECT_FAIL);
 
 
                         /* AJWOZ
@@ -784,7 +781,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         } else {
                             Timber.i("--> " + gatt.getDevice().getName() + " not OW, moving on.");
                         }
-                        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.NOT_ONEWHEEL);
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.TODO_NOT_ONEWHEEL);
                         return;
                     }
 
@@ -994,7 +991,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         private class DiscoverSericesStateBuilder {
 
             public static final String GATT_CONNECTED = "Gatt Connected";
-            public static final String GATT_CONNECT_FAIL = "Gatt Connect Fail";
+            public static final String TODO_GATT_CONNECT_FAIL = "Todo Gatt Connect Fail";
+            public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
 
             public State build() {
 
@@ -1003,14 +1001,19 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 ServicesDiscoveredState servicesDiscoveredState = new ServicesDiscoveredState();
                 State gattConnectFailed = new State("Gatt connect failed");
 
+                State notOnewheel = new State("Not Onewheel");
+                discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheel, TransitionKind.External);
+
+
                 connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
-                connectingState.addHandler(GATT_CONNECT_FAIL, gattConnectFailed, TransitionKind.External);
+                connectingState.addHandler(TODO_GATT_CONNECT_FAIL, gattConnectFailed, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
                         discoveringServicesState,
                         servicesDiscoveredState,
-                        gattConnectFailed);
+                        gattConnectFailed,
+                        notOnewheel);
 
 
                 connectingState.inject(discoverSericesState.bluetoothGattCallback);
