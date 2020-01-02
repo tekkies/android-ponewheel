@@ -804,13 +804,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     // Stability updates per https://github.com/ponewheel/android-ponewheel/issues/86#issuecomment-460033659
                     // Step 1: In OnServicesDiscovered, JUST read the firmware version.
                     Timber.d("Stability Step 1: Only reading the firmware version!");
-                    //new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    handler.postDelayed(new Runnable() {
-                        public void run() {
-                            BluetoothUtilImpl.this.mGatt.readCharacteristic(BluetoothUtilImpl.this.owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
-                        }
-                    }, 500);
 
+
+                    handleStateMachineEvent(DiscoverSericesStateBuilder.READ_FIRMWARE_REVISION);
                 }
 
                 @Override
@@ -993,16 +989,21 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String GATT_CONNECTED = "Gatt Connected";
             public static final String TODO_GATT_CONNECT_FAIL = "Todo Gatt Connect Fail";
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
+            public static final String READ_FIRMWARE_REVISION = "Read Firmware";
 
             public State build() {
 
                 ConnectingState connectingState = new ConnectingState();
                 DiscoveringServicesState discoveringServicesState = new DiscoveringServicesState();
                 ServicesDiscoveredState servicesDiscoveredState = new ServicesDiscoveredState();
-                State gattConnectFailed = new State("Gatt connect failed");
+                State readingFirmawareState = new ReadingFirmwareState();
 
+
+                State gattConnectFailed = new State("Gatt connect failed");
                 State notOnewheel = new State("Not Onewheel");
+
                 discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheel, TransitionKind.External);
+                discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
 
 
                 connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
@@ -1012,6 +1013,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         connectingState,
                         discoveringServicesState,
                         servicesDiscoveredState,
+                        readingFirmawareState,
                         gattConnectFailed,
                         notOnewheel);
 
@@ -1067,6 +1069,24 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             private void discoverGattServices(Map<String, Object> mPayload1) {
                 BluetoothGatt gatt = (BluetoothGatt) mPayload1.get(BluetoothGatt.class.getSimpleName());
                 gatt.discoverServices();
+            }
+
+            private class ReadingFirmwareState extends State {
+                public ReadingFirmwareState() {
+                    super("Reading Firmware");
+                    onEnter(new ReadFirmware());
+                }
+
+                private class ReadFirmware extends Action {
+                    @Override
+                    public void run() {
+                        handler.postDelayed(new Runnable() {
+                            public void run() {
+                                BluetoothUtilImpl.this.mGatt.readCharacteristic(BluetoothUtilImpl.this.owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
+                            }
+                        }, 500);
+                    }
+                }
             }
         }
     }
