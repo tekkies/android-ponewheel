@@ -839,7 +839,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                             HashMap<String, Object> payload = new HashMap<String, Object>(1);
                             payload.put(owGatService.getClass().getSimpleName(), owGatService);
                             payload.put(gatt.getClass().getSimpleName(), gatt);
-                            handleStateMachineEvent(DiscoverSericesStateBuilder.GEN_2_FIRMWARE, payload);
+                            handleStateMachineEvent(DiscoverSericesStateBuilder.GEMINI_FIRMWARE, payload);
                         }
 
                         IUnlocker unlocker = session.getUnlocker();
@@ -876,24 +876,17 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
 
                 @Override
-                public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic c) {
-                    //Timber.d( "BluetoothGattCallback.onCharacteristicChanged: CharacteristicUuid=" + c.getUuid().toString());
+                public void onCharacteristicChanged(BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic bluetoothGattCharacteristic) {
 
-                    // https://github.com/ponewheel/android-ponewheel/issues/86
-                    //if (isGemini && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {
-                    // Step 4: In OnCharacteristicChanged, if isGemini and characteristic is serial read,
-                    // do the gemini hash crap and stuff and setNotify for serial read to false.
-                    //    Timber.d("Stability Step 4: Gemini unlock & setting setNotify for serial read to false");
-                    //    unlockKeyGemini(gatt,c.getValue());
+                    if (isGemini() && (bluetoothGattCharacteristic.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {
 
-                    //}
-                    BluetoothGatt bluetoothGatt = gatt;
-                    BluetoothGattCharacteristic bluetoothGattCharacteristic = c;
 
-                    if (isGemini() && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.SERIAL_READ, newSimplePayload(bluetoothGattCharacteristic));
+
+
                         try {
                             Timber.d("Setting up inkey!");
-                            inkey.write(c.getValue());
+                            inkey.write(bluetoothGattCharacteristic.getValue());
                             if (inkey.toByteArray().length >= 20 && sendKey) {
                                 StringBuilder sb = new StringBuilder();
                                 sb.append("GEMINI Step #2: convert inkey=");
@@ -1003,7 +996,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
             public static final String READ_FIRMWARE_REVISION = "Read Firmware";
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
-            public static final String GEN_2_FIRMWARE = "Gen 2 Firmware";
+            public static final String GEMINI_FIRMWARE = "Gemini Firmware";
+            public static final String SERIAL_READ = "Serial Read";
+            private GetInkeyState getInkeyState;
 
             public State build() {
 
@@ -1011,7 +1006,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 DiscoveringServicesState discoveringServicesState = new DiscoveringServicesState();
                 ServicesDiscoveredState servicesDiscoveredState = new ServicesDiscoveredState();
                 State readingFirmawareState = new ReadingFirmwareState();
-                State getInkeyState = new GetInkeyState();
+                getInkeyState = new GetInkeyState();
 
                 State gattConnectFailed = new State("TODO Gatt connect failed");
                 State notOnewheel = new State("TODO Not Onewheel");
@@ -1025,7 +1020,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 ShowTimeState showTimeState = new ShowTimeState();
                 readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
-                readingFirmawareState.addHandler(GEN_2_FIRMWARE, getInkeyState, TransitionKind.External);
+                readingFirmawareState.addHandler(GEMINI_FIRMWARE, getInkeyState, TransitionKind.External);
+
+                getInkeyState.addHandler(SERIAL_READ, getInkeyState, TransitionKind.Internal, new OnSerialRead());
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
@@ -1127,9 +1124,25 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             }
 
             private class GetInkeyState extends State {
+
+                public ByteArrayOutputStream inkey;
+
                 public GetInkeyState() {
                     super("Get Inkey");
+                     inkey = new ByteArrayOutputStream();
                     onEnter(new RequestInkey());
+                }
+
+                public void onSerialRead(BluetoothGattCharacteristic bluetoothGattCharacteristic) {
+                    try {
+                        inkey.write(bluetoothGattCharacteristic.getValue());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("GEMINI Step #2: convert inkey=");
+                    sb.append(Util.bytesToHex(inkey.toByteArray()));
+                    Timber.d(sb.toString());
                 }
 
                 private class RequestInkey extends Action {
@@ -1150,6 +1163,16 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     BluetoothGattDescriptor descriptor = gC.getDescriptor(UUID.fromString(OWDevice.OnewheelConfigUUID));
                     descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                     bluetoothGatt.writeDescriptor(descriptor);
+                }
+            }
+
+            private class OnSerialRead extends Action {
+                @Override
+                public void run() {
+
+                    BluetoothGattCharacteristic bluetoothGattCharacteristic = (BluetoothGattCharacteristic) mPayload.get(BluetoothGattCharacteristic.class.getSimpleName());
+                    getInkeyState.onSerialRead(bluetoothGattCharacteristic);
+
                 }
             }
         }
