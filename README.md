@@ -35,7 +35,15 @@ Special thanks to,
 
 Try to manage comms with a hierarchical state machine
 
-![State digram](doc/state-diagram.gif)
+e.g.
+
+![State digram](doc/progress-012.png)
+
+Diagram
+
+![State digram](doc/ponewheel-state.png)
+
+
 
 > Progress
 

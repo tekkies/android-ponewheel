@@ -1,0 +1,57 @@
+@startuml
+state "Connection Enabled" as Connection_Enabled  {
+    state "Adapter Disabled" as Adapter_Disabled  {
+    }
+    state "Adapter Enabled" as Adapter_Enabled  {
+        state "Discover Services" as Discover_Services  {
+            state "Discovering Services" as Discovering_Services  {
+Discovering_Services : Enter: DiscoverServices
+            }
+            state "Sevices Discovered" as Sevices_Discovered  {
+            }
+            state "Reading Firmware" as Reading_Firmware  {
+Reading_Firmware : Enter: ReadFirmware
+            }
+            state "Showtime" as Showtime  {
+Showtime : Enter: OnEnter
+            }
+            state "Get Inkey" as Get_Inkey  {
+Get_Inkey : Enter: RequestInkey
+            }
+            state "TODO Gatt connect failed" as TODO_Gatt_connect_failed  {
+            }
+            state "TODO Not Onewheel" as TODO_Not_Onewheel  {
+            }
+            state "Connecting" as Connecting  {
+Connecting : Enter: TryToConnect
+            }
+        }
+        state "TBC" as TBC  {
+        }
+        state "Scanning" as Scanning  {
+Scanning : Enter: StartScan\nExit: StopScan
+        }
+    }
+    state "Init" as Init  {
+    }
+Connection_Enabled : Enter: ListenForBluetoothToggle\nExit: StopListeningForBluetoothToggle
+}
+state "Connection Disabled" as Connection_Disabled  {
+}
+Adapter_Disabled --> Adapter_Enabled : Adapter_Enabled
+Discovering_Services --> TODO_Not_Onewheel : ToDo_Not_Onewheel
+Discovering_Services --> Reading_Firmware : Read_Firmware
+Reading_Firmware --> Showtime : Gen_1_Firmware
+Reading_Firmware --> Get_Inkey : Gemini_Firmware
+Get_Inkey --> Get_Inkey : Serial_Read
+Connecting --> Discovering_Services : Gatt_Connected
+Connecting --> TODO_Gatt_connect_failed : Todo_Gatt_Connect_Fail
+Discover_Services --> TBC : TBC
+Scanning --> Discover_Services : Onewheel_found
+Adapter_Enabled --> Adapter_Disabled : Adapter_Disabled
+Init --> Adapter_Enabled : Adapter_Enabled
+Init --> Adapter_Disabled : Adapter_Disabled
+Connection_Enabled --> Connection_Disabled : Disable_connection
+Connection_Disabled --> Connection_Enabled : Enable_connection
+ 
+@enduml
