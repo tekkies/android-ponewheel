@@ -8,36 +8,31 @@ class InkeyCollator {
     private final byte[] signature;
 
     public InkeyCollator() {
-        inkey = new ArrayList<Byte>();
+        inkey = new ArrayList<Byte>(EXPECTED_SIZE);
         signature = Util.StringToByteArrayFastest("098e56");
     }
 
     public void append(byte[] bytes) {
-        for (Byte item: bytes) {
+        for (Byte item : bytes) {
             append(item);
         }
     }
 
     private void append(Byte item) {
-        if(inkey.size() == 0) {
-            if(item == signature[0]) {
-                inkey.add(item);
-            }
-        } else if(inkey.size() == 1) {
-            if(item == signature[1]) {
-                inkey.add(item);
-            } else {
-                inkey.clear();
-            }
-        } else if(inkey.size() == 2) {
-            if(item == signature[2]) {
-                inkey.add(item);
-            } else {
-                inkey.clear();
-            }
-        } else if(inkey.size() < EXPECTED_SIZE) {
+        if (!isFound()) {
             inkey.add(item);
+            if (inkey.size() == signature.length) {
+                if (!bufferContainsSignature()) {
+                    inkey.remove(0);
+                }
+            }
         }
+    }
+
+    private boolean bufferContainsSignature() {
+        return inkey.get(0) == signature[0]
+            && inkey.get(1) == signature[1]
+            && inkey.get(2) == signature[2];
     }
 
     public boolean isFound() {
@@ -54,7 +49,7 @@ class InkeyCollator {
 
     private byte[] toArray(ArrayList<Byte> inkey) {
         byte[] bytes = new byte[inkey.size()];
-        for(int index=0;index<EXPECTED_SIZE;index++) {
+        for(int index=0;index<inkey.size();index++) {
             bytes[index] = inkey.get(index);
         }
         return bytes;

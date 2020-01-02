@@ -34,8 +34,17 @@ public class InkeyCollatorTest {
     }
 
     @Test
-    public void canCollatepartialKey() {
+    public void canCollatepartialKeyWithoutGap() {
         byte[] stream = Util.StringToByteArrayFastest("deadbeef:098e:"+GOOD_INKEY+":deadbeef");
+        InkeyCollator inkeyCollator = new InkeyCollator();
+        inkeyCollator.append(stream);
+        Assert.assertTrue(inkeyCollator.isFound());
+        Assert.assertArrayEquals(Util.StringToByteArrayFastest(GOOD_INKEY), inkeyCollator.get());
+    }
+
+    @Test
+    public void canCollatepartialKeyWithGap() {
+        byte[] stream = Util.StringToByteArrayFastest("deadbeef:098e:deadbeef:"+GOOD_INKEY+":deadbeef");
         InkeyCollator inkeyCollator = new InkeyCollator();
         inkeyCollator.append(stream);
         Assert.assertTrue(inkeyCollator.isFound());
