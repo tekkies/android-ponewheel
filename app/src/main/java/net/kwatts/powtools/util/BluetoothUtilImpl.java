@@ -989,7 +989,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         }
 
-        private class DiscoverSericesStateBuilder {
+        public class DiscoverSericesStateBuilder {
 
             public static final String GATT_CONNECTED = "Gatt Connected";
             public static final String TODO_GATT_CONNECT_FAIL = "Todo Gatt Connect Fail";
@@ -1123,13 +1123,15 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
             }
 
-            private class GetInkeyState extends State {
+            public class GetInkeyState extends State {
 
+                private final InkeyCollator inkeyCollator;
                 public ByteArrayOutputStream inkey;
 
                 public GetInkeyState() {
                     super("Get Inkey");
                      inkey = new ByteArrayOutputStream();
+                     inkeyCollator = new InkeyCollator();
                     onEnter(new RequestInkey());
                 }
 
@@ -1164,6 +1166,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                     bluetoothGatt.writeDescriptor(descriptor);
                 }
+
             }
 
             private class OnSerialRead extends Action {
