@@ -111,7 +111,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         connectionEnabledStateMachineBuilder = new ConnectionEnabledStateMachineBuilder(this);
         stateMachine = connectionEnabledStateMachineBuilder.build();
 
-        String cacheDir = mainActivity.getCacheDir().getAbsolutePath()+ File.separator+"stateDiagram";
+        String cacheDir = mainActivity.getCacheDir().getAbsolutePath() + File.separator + "stateDiagram";
         diagramCache = new DiagramCache(cacheDir, stateMachine)
                 .ensurePathExists()
                 .fill(this);
@@ -130,7 +130,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     @Override
     public void onDiagramCacheFilled(Boolean success) {
-        if(success) {
+        if (success) {
             saveDiagramToSdCard();
         }
     }
@@ -193,7 +193,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     @NotNull
     private HashMap<String, Object> newSimplePayload(Object result) {
         HashMap<String, Object> payload = new HashMap<String, Object>(1);
-        payload.put(result.getClass().getSimpleName(),result);
+        payload.put(result.getClass().getSimpleName(), result);
         return payload;
     }
 
@@ -220,7 +220,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         StringBuilder sb = new StringBuilder(String.format("-- %s -->%s", event, System.lineSeparator()));
         String[] states = stateMachine.toString().replace("(", "").replace(")", "").split("/");
         for (int i = 0; i < states.length; i++) {
-            sb.append(new String(new char[(i+1) * 4]).replace("\0", " "));
+            sb.append(new String(new char[(i + 1) * 4]).replace("\0", " "));
             sb.append(states[i]);
             sb.append(System.lineSeparator());
         }
@@ -595,26 +595,32 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             public static final String ADAPTER_DISABLED = "Adapter Disabled";
             public static final String ADAPTER_ENABLED = "Adapter Enabled";
+            public static final String NOT_ONEWHEEL = "Not Onewheel";
             public static final String TBC = "TBC";
 
             public State build() {
 
                 InitState init = new InitState();
                 State adapterDisabled = new State(ADAPTER_DISABLED);
-                State adapterEnabled = new Sub(ADAPTER_ENABLED, new ConnectionStateMachine().createConnectionStateMachine());
+                ConnectionStateMachine connectionStateMachine = new ConnectionStateMachine();
+                State adapterEnabledState = new Sub(ADAPTER_ENABLED, connectionStateMachine.createConnectionStateMachine());
+                State notOnewheel = new State("Not Onewheel");
 
-                adapterEnabled.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
-                adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+                adapterEnabledState.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+                adapterEnabledState.addHandler(NOT_ONEWHEEL, notOnewheel, TransitionKind.External);
 
-                init.addHandler(ADAPTER_ENABLED, adapterEnabled, TransitionKind.External);
+                adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
+
+                init.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
                 init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
 
-                return new ConnectionEnabledState(new StateMachine(init, adapterDisabled, adapterEnabled));
+                return new ConnectionEnabledState(new StateMachine(init, adapterDisabled, adapterEnabledState, notOnewheel));
             }
 
             private class InitState extends State {
                 public static final String ID = "Init";
+
                 public InitState() {
                     super(ID);
                 }
@@ -628,6 +634,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         public static final String ONEWHEEL_FOUND = "Onewheel found";
         private ScanningState scanningState;
+        private State tbcState;
 
 
         public StateMachine createConnectionStateMachine() {
@@ -636,10 +643,10 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             State discoverServices = new DiscoverSericesStateBuilder().build();
             scanningState.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
 
-            State found = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
-            discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, found, TransitionKind.External);
+            tbcState = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
+            discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, tbcState, TransitionKind.External);
 
-            return new StateMachine(scanningState, discoverServices, found);
+            return new StateMachine(scanningState, discoverServices, tbcState);
         }
 
         private class ScanningState extends State {
@@ -734,8 +741,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         private class DiscoverSericesState extends Sub {
             public static final String ID = "Discover Services";
 
-            public DiscoverSericesState(State initialState, State... states){
-                    super(ID, initialState, states);
+            public DiscoverSericesState(State initialState, State... states) {
+                super(ID, initialState, states);
             }
 
             private final BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
@@ -751,9 +758,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
 
-
                         handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECT_FAIL);
-
 
 
                         /* AJWOZ
@@ -779,6 +784,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         } else {
                             Timber.i("--> " + gatt.getDevice().getName() + " not OW, moving on.");
                         }
+                        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.NOT_ONEWHEEL);
                         return;
                     }
 
@@ -995,16 +1001,16 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 ConnectingState connectingState = new ConnectingState();
                 DiscoveringServicesState discoveringServicesState = new DiscoveringServicesState();
                 ServicesDiscoveredState servicesDiscoveredState = new ServicesDiscoveredState();
+                State gattConnectFailed = new State("Gatt connect failed");
 
                 connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
-                connectingState.addHandler(GATT_CONNECT_FAIL, scanningState, TransitionKind.External);
+                connectingState.addHandler(GATT_CONNECT_FAIL, gattConnectFailed, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
                         discoveringServicesState,
-                        servicesDiscoveredState);
-
-
+                        servicesDiscoveredState,
+                        gattConnectFailed);
 
 
                 connectingState.inject(discoverSericesState.bluetoothGattCallback);
@@ -1048,6 +1054,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     }
                 }
             }
+
             private class ServicesDiscoveredState extends State {
                 public ServicesDiscoveredState() {
                     super("Sevices Discovered");
