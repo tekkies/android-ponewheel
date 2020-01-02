@@ -831,8 +831,26 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         Timber.d("We have the firmware revision! Checking version.");
                         int firmwareVersion = unsignedShort(c.getValue());
                         Session session = Session.Create(firmwareVersion);
+
+
+
+
+                        if(firmwareVersion <= 4033)
+                        {
+                            handleStateMachineEvent(DiscoverSericesStateBuilder.GEN_1_FIRMWARE, newSimplePayload(mainActivity.getBluetoothUtil()));
+                        } else if(firmwareVersion <= 4141)
+                        {
+                            //unlocker = new V2Unlocker();
+                        } else {
+                            //unlocker = new V3Unlocker();
+                        }
+
+
                         IUnlocker unlocker = session.getUnlocker();
                         unlocker.start(getInstance(), owGatService, gatt);
+
+
+
                     } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
                         Timber.d("Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
                     }
@@ -990,6 +1008,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String TODO_GATT_CONNECT_FAIL = "Todo Gatt Connect Fail";
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
             public static final String READ_FIRMWARE_REVISION = "Read Firmware";
+            public static final String GEN_1_FIRMWARE = "Gen 1 Firmawre";
 
             public State build() {
 
@@ -999,8 +1018,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 State readingFirmawareState = new ReadingFirmwareState();
 
 
-                State gattConnectFailed = new State("Gatt connect failed");
-                State notOnewheel = new State("Not Onewheel");
+                State gattConnectFailed = new State("TODO Gatt connect failed");
+                State notOnewheel = new State("TODO Not Onewheel");
 
                 discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheel, TransitionKind.External);
                 discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
@@ -1009,11 +1028,17 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
                 connectingState.addHandler(TODO_GATT_CONNECT_FAIL, gattConnectFailed, TransitionKind.External);
 
+                ShowTimeState showTimeState = new ShowTimeState();
+                readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
+
+
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
                         discoveringServicesState,
                         servicesDiscoveredState,
                         readingFirmawareState,
+                        showTimeState,
+
                         gattConnectFailed,
                         notOnewheel);
 
@@ -1085,6 +1110,21 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                                 BluetoothUtilImpl.this.mGatt.readCharacteristic(BluetoothUtilImpl.this.owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicFirmwareRevision)));
                             }
                         }, 500);
+                    }
+                }
+            }
+
+            private class ShowTimeState extends State {
+                public ShowTimeState() {
+                    super("Showtime");
+                    onEnter(new OnEnter());
+                }
+
+                private class OnEnter extends Action {
+                    @Override
+                    public void run() {
+                        BluetoothUtil bluetoothUtil = (BluetoothUtil)mPayload.get(BluetoothUtil.class.getSimpleName());
+                        bluetoothUtil.whenActuallyConnected();
                     }
                 }
             }
