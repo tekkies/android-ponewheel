@@ -832,24 +832,18 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         int firmwareVersion = unsignedShort(c.getValue());
                         Session session = Session.Create(firmwareVersion);
 
-
-
-
                         if(firmwareVersion <= 4033)
                         {
                             handleStateMachineEvent(DiscoverSericesStateBuilder.GEN_1_FIRMWARE, newSimplePayload(mainActivity.getBluetoothUtil()));
-                        } else if(firmwareVersion <= 4141)
-                        {
-                            //unlocker = new V2Unlocker();
                         } else {
-                            //unlocker = new V3Unlocker();
+                            HashMap<String, Object> payload = new HashMap<String, Object>(1);
+                            payload.put(owGatService.getClass().getSimpleName(), owGatService);
+                            payload.put(gatt.getClass().getSimpleName(), gatt);
+                            handleStateMachineEvent(DiscoverSericesStateBuilder.GEN_2_FIRMWARE, payload);
                         }
-
 
                         IUnlocker unlocker = session.getUnlocker();
                         unlocker.start(getInstance(), owGatService, gatt);
-
-
 
                     } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
                         Timber.d("Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
@@ -1008,7 +1002,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String TODO_GATT_CONNECT_FAIL = "Todo Gatt Connect Fail";
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
             public static final String READ_FIRMWARE_REVISION = "Read Firmware";
-            public static final String GEN_1_FIRMWARE = "Gen 1 Firmawre";
+            public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
+            public static final String GEN_2_FIRMWARE = "Gen 2 Firmware";
 
             public State build() {
 
@@ -1016,7 +1011,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 DiscoveringServicesState discoveringServicesState = new DiscoveringServicesState();
                 ServicesDiscoveredState servicesDiscoveredState = new ServicesDiscoveredState();
                 State readingFirmawareState = new ReadingFirmwareState();
-
+                State getInkeyState = new GetInkeyState();
 
                 State gattConnectFailed = new State("TODO Gatt connect failed");
                 State notOnewheel = new State("TODO Not Onewheel");
@@ -1030,7 +1025,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 ShowTimeState showTimeState = new ShowTimeState();
                 readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
-
+                readingFirmawareState.addHandler(GEN_2_FIRMWARE, getInkeyState, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
@@ -1038,6 +1033,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         servicesDiscoveredState,
                         readingFirmawareState,
                         showTimeState,
+                        getInkeyState,
 
                         gattConnectFailed,
                         notOnewheel);
@@ -1059,6 +1055,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                     this.bluetoothGattCallback = bluetoothGattCallback;
                 }
+
 
                 private class TryToConnect extends Action {
                     @Override
@@ -1126,6 +1123,33 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         BluetoothUtil bluetoothUtil = (BluetoothUtil)mPayload.get(BluetoothUtil.class.getSimpleName());
                         bluetoothUtil.whenActuallyConnected();
                     }
+                }
+            }
+
+            private class GetInkeyState extends State {
+                public GetInkeyState() {
+                    super("Get Inkey");
+                    onEnter(new RequestInkey());
+                }
+
+                private class RequestInkey extends Action {
+                    @Override
+                    public void run() {
+                        BluetoothGattService bluetoothGattService = (BluetoothGattService) mPayload.get(BluetoothGattService.class.getSimpleName());
+                        BluetoothGatt bluetoothGatt = (BluetoothGatt) mPayload.get(BluetoothGatt.class.getSimpleName());
+                        requestInkey(bluetoothGattService, bluetoothGatt);
+                    }
+                }
+
+                public void requestInkey(BluetoothGattService bluetoothGattService, BluetoothGatt bluetoothGatt) {
+                    Timber.d("It's Gemini!");
+                    Timber.d("Stability Step 2.1: JUST write the descriptor for the Serial Read characteristic to Enable notifications");
+                    BluetoothGattCharacteristic gC = bluetoothGattService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));
+                    bluetoothGatt.setCharacteristicNotification(gC, true);
+                    Timber.d("and set notify to true with gatt...");
+                    BluetoothGattDescriptor descriptor = gC.getDescriptor(UUID.fromString(OWDevice.OnewheelConfigUUID));
+                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                    bluetoothGatt.writeDescriptor(descriptor);
                 }
             }
         }
