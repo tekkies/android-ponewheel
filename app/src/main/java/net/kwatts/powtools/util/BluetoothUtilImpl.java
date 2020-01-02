@@ -998,15 +998,21 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
             public static final String GEMINI_FIRMWARE = "Gemini Firmware";
             public static final String SERIAL_READ = "Serial Read";
+            public static final String INKEY_FOUND = "Inkey Found";
             private GetInkeyState getInkeyState;
+            private State getOutKeyState;
+            private ConnectingState connectingState;
+            private DiscoveringServicesState discoveringServicesState;
+            private ServicesDiscoveredState servicesDiscoveredState;
 
             public State build() {
 
-                ConnectingState connectingState = new ConnectingState();
-                DiscoveringServicesState discoveringServicesState = new DiscoveringServicesState();
-                ServicesDiscoveredState servicesDiscoveredState = new ServicesDiscoveredState();
+                connectingState = new ConnectingState();
+                discoveringServicesState = new DiscoveringServicesState();
+                servicesDiscoveredState = new ServicesDiscoveredState();
                 State readingFirmawareState = new ReadingFirmwareState();
                 getInkeyState = new GetInkeyState();
+                getOutKeyState = new State("Get Outkey");
 
                 State gattConnectFailed = new State("TODO Gatt connect failed");
                 State notOnewheel = new State("TODO Not Onewheel");
@@ -1023,6 +1029,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 readingFirmawareState.addHandler(GEMINI_FIRMWARE, getInkeyState, TransitionKind.External);
 
                 getInkeyState.addHandler(SERIAL_READ, getInkeyState, TransitionKind.Internal, new OnSerialRead());
+                getInkeyState.addHandler(INKEY_FOUND, getOutKeyState, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
@@ -1031,6 +1038,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         readingFirmawareState,
                         showTimeState,
                         getInkeyState,
+                        getOutKeyState,
 
                         gattConnectFailed,
                         notOnewheel);
@@ -1126,25 +1134,19 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public class GetInkeyState extends State {
 
                 private final InkeyCollator inkeyCollator;
-                public ByteArrayOutputStream inkey;
 
                 public GetInkeyState() {
                     super("Get Inkey");
-                     inkey = new ByteArrayOutputStream();
-                     inkeyCollator = new InkeyCollator();
+                    inkeyCollator = new InkeyCollator();
                     onEnter(new RequestInkey());
                 }
 
                 public void onSerialRead(BluetoothGattCharacteristic bluetoothGattCharacteristic) {
-                    try {
-                        inkey.write(bluetoothGattCharacteristic.getValue());
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    byte[] value = bluetoothGattCharacteristic.getValue();
+                    inkeyCollator.append(value);
+                    if(inkeyCollator.isFound()) {
+                        handleStateMachineEvent(INKEY_FOUND, newSimplePayload(inkeyCollator));
                     }
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("GEMINI Step #2: convert inkey=");
-                    sb.append(Util.bytesToHex(inkey.toByteArray()));
-                    Timber.d(sb.toString());
                 }
 
                 private class RequestInkey extends Action {
@@ -1172,10 +1174,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             private class OnSerialRead extends Action {
                 @Override
                 public void run() {
-
                     BluetoothGattCharacteristic bluetoothGattCharacteristic = (BluetoothGattCharacteristic) mPayload.get(BluetoothGattCharacteristic.class.getSimpleName());
                     getInkeyState.onSerialRead(bluetoothGattCharacteristic);
-
                 }
             }
         }
