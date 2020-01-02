@@ -37,7 +37,7 @@ Try to manage comms with a hierarchical state machine
 
 e.g.
 
-![State digram](doc/progress-012.png)
+![State digram](doc/screenshot.png)
 
 Diagram
 
