@@ -627,18 +627,19 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
 
         public static final String ONEWHEEL_FOUND = "Onewheel found";
+        private ScanningState scanningState;
 
 
         public StateMachine createConnectionStateMachine() {
-            State scanning = new ScanningState();
+            scanningState = new ScanningState();
 
             State discoverServices = new DiscoverSericesStateBuilder().build();
-            scanning.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
+            scanningState.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
 
             State found = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
             discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, found, TransitionKind.External);
 
-            return new StateMachine(scanning, discoverServices, found);
+            return new StateMachine(scanningState, discoverServices, found);
         }
 
         private class ScanningState extends State {
@@ -733,9 +734,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         private class DiscoverSericesState extends Sub {
             public static final String ID = "Discover Services";
 
-            public DiscoverSericesState(State connecting, State sevices_discovered) {
-                super(ID, connecting, sevices_discovered);
-
+            public DiscoverSericesState(State initialState, State... states){
+                    super(ID, initialState, states);
             }
 
             private final BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
@@ -746,18 +746,23 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Timber.d("STATE_CONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
                         BluetoothUtilImpl.isOWFound.set("true");
-                        gatt.discoverServices();
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECTED, newSimplePayload(gatt));
                         Battery.initStateTwoX(App.INSTANCE.getSharedPreferences());
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
+
+
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECT_FAIL);
+
+
+
+                        /* AJWOZ
                         isUnlocked = 0;
                         BluetoothUtilImpl.isOWFound.set("false");
                         if (gatt.getDevice().getAddress().equals(mOWDevice.deviceMacAddress.get())) {
                             BluetoothUtilImpl bluetoothUtilImpl = BluetoothUtilImpl.this;
                             onOWStateChangedToDisconnected(gatt, bluetoothUtilImpl.mContext);
-                        }
-                        //updateLog("--> Closed " + gatt.getDevice().getAddress());
-                        //Timber.d( "Disconnect:" + gatt.getDevice().getAddress());
+                        }*/
                     }
                 }
 
@@ -981,9 +986,27 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
 
         private class DiscoverSericesStateBuilder {
+
+            public static final String GATT_CONNECTED = "Gatt Connected";
+            public static final String GATT_CONNECT_FAIL = "Gatt Connect Fail";
+
             public State build() {
+
                 ConnectingState connectingState = new ConnectingState();
-                DiscoverSericesState discoverSericesState = new DiscoverSericesState(connectingState, new ServicesDiscoveredState());
+                DiscoveringServicesState discoveringServicesState = new DiscoveringServicesState();
+                ServicesDiscoveredState servicesDiscoveredState = new ServicesDiscoveredState();
+
+                connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
+                connectingState.addHandler(GATT_CONNECT_FAIL, scanningState, TransitionKind.External);
+
+                DiscoverSericesState discoverSericesState = new DiscoverSericesState(
+                        connectingState,
+                        discoveringServicesState,
+                        servicesDiscoveredState);
+
+
+
+
                 connectingState.inject(discoverSericesState.bluetoothGattCallback);
                 return discoverSericesState;
             }
@@ -1011,10 +1034,29 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
             }
 
+
+            private class DiscoveringServicesState extends State {
+                public DiscoveringServicesState() {
+                    super("Discovering Services");
+                    onEnter(new DiscoverServices());
+                }
+
+                private class DiscoverServices extends Action {
+                    @Override
+                    public void run() {
+                        discoverGattServices(mPayload);
+                    }
+                }
+            }
             private class ServicesDiscoveredState extends State {
                 public ServicesDiscoveredState() {
                     super("Sevices Discovered");
                 }
+            }
+
+            private void discoverGattServices(Map<String, Object> mPayload1) {
+                BluetoothGatt gatt = (BluetoothGatt) mPayload1.get(BluetoothGatt.class.getSimpleName());
+                gatt.discoverServices();
             }
         }
     }
