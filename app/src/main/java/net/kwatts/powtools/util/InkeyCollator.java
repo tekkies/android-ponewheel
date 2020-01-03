@@ -2,7 +2,7 @@ package net.kwatts.powtools.util;
 
 import java.util.ArrayList;
 
-class InkeyCollator {
+public class InkeyCollator {
     public static final int EXPECTED_SIZE = 20;
     private final ArrayList<Byte> inkey;
     private final byte[] signature;

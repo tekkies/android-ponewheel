@@ -26,11 +26,13 @@ import android.widget.Toast;
 import android.databinding.ObservableField;
 
 import net.kwatts.powtools.App;
+import net.kwatts.powtools.BluetoothStateMachine.Event;
 import net.kwatts.powtools.BuildConfig;
 import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
+import net.kwatts.powtools.BluetoothStateMachine.Event.InkeyFound;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -810,8 +812,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
 
                 @Override
-                public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
-                    String characteristic_uuid = c.getUuid().toString();
+                public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic bluetoothGattCharacteristic, int status) {
+                    String characteristic_uuid = bluetoothGattCharacteristic.getUuid().toString();
                     Timber.d("BluetoothGattCallback.onCharacteristicRead: CharacteristicUuid=" +
                             characteristic_uuid +
                             ",status=" + status +
@@ -829,7 +831,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     // or Gemini later on.
                     if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicFirmwareRevision)) {
                         Timber.d("We have the firmware revision! Checking version.");
-                        int firmwareVersion = unsignedShort(c.getValue());
+                        int firmwareVersion = unsignedShort(bluetoothGattCharacteristic.getValue());
                         Session session = Session.Create(firmwareVersion);
 
                         if(firmwareVersion <= 4033)
@@ -846,24 +848,24 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         unlocker.start(getInstance(), owGatService, gatt);
 
                     } else if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicRidingMode)) {
-                        Timber.d("Got ride mode from the main UI thread:" + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
+                        Timber.d("Got ride mode from the main UI thread:" + bluetoothGattCharacteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
                     }
 
                     if (BuildConfig.DEBUG) {
-                        byte[] v_bytes = c.getValue();
+                        byte[] v_bytes = bluetoothGattCharacteristic.getValue();
                         StringBuilder sb = new StringBuilder();
-                        for (byte b : c.getValue()) {
+                        for (byte b : bluetoothGattCharacteristic.getValue()) {
                             sb.append(String.format("%02x", b));
                         }
                         Timber.d("HEX %02x: " + sb);
                         Timber.d("Arrays.toString() value: " + Arrays.toString(v_bytes));
-                        Timber.d("String value: " + c.getStringValue(0));
+                        Timber.d("String value: " + bluetoothGattCharacteristic.getStringValue(0));
                         Timber.d("Unsigned short: " + unsignedShort(v_bytes));
-                        Timber.d("getIntValue(FORMAT_UINT8,0) " + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0));
-                        Timber.d("getIntValue(FORMAT_UINT8,1) " + c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
+                        Timber.d("getIntValue(FORMAT_UINT8,0) " + bluetoothGattCharacteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0));
+                        Timber.d("getIntValue(FORMAT_UINT8,1) " + bluetoothGattCharacteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
                     }
 
-                    mOWDevice.processUUID(c);
+                    mOWDevice.processUUID(bluetoothGattCharacteristic);
 
                     mOWDevice.setBatteryRemaining(mainActivity);
 
@@ -998,7 +1000,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
             public static final String GEMINI_FIRMWARE = "Gemini Firmware";
             public static final String SERIAL_READ = "Serial Read";
-            public static final String INKEY_FOUND = "Inkey Found";
             private GetInkeyState getInkeyState;
             private State getOutKeyState;
             private ConnectingState connectingState;
@@ -1029,7 +1030,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 readingFirmawareState.addHandler(GEMINI_FIRMWARE, getInkeyState, TransitionKind.External);
 
                 getInkeyState.addHandler(SERIAL_READ, getInkeyState, TransitionKind.Internal, new OnSerialRead());
-                getInkeyState.addHandler(INKEY_FOUND, getOutKeyState, TransitionKind.External);
+                getInkeyState.addHandler(InkeyFound.ID, getOutKeyState, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
@@ -1145,7 +1146,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     byte[] value = bluetoothGattCharacteristic.getValue();
                     inkeyCollator.append(value);
                     if(inkeyCollator.isFound()) {
-                        handleStateMachineEvent(INKEY_FOUND, newSimplePayload(inkeyCollator));
+                        handleStateMachineEvent(InkeyFound.ID, InkeyFound.newPayload(inkeyCollator));
                     }
                 }
 
@@ -1154,6 +1155,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     public void run() {
                         BluetoothGattService bluetoothGattService = (BluetoothGattService) mPayload.get(BluetoothGattService.class.getSimpleName());
                         BluetoothGatt bluetoothGatt = (BluetoothGatt) mPayload.get(BluetoothGatt.class.getSimpleName());
+                        //int firmwareVersion = unsignedShort(bluetoothGattCharacteristic.getValue());
                         requestInkey(bluetoothGattService, bluetoothGatt);
                     }
                 }
