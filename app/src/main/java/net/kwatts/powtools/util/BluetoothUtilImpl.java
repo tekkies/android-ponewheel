@@ -27,6 +27,7 @@ import android.databinding.ObservableField;
 
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.BluetoothStateMachine.Event;
+import net.kwatts.powtools.BluetoothStateMachine.PayloadBuilder;
 import net.kwatts.powtools.BuildConfig;
 import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
@@ -1145,6 +1146,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 private final InkeyCollator inkeyCollator;
                 private int firmwareVersion;
+                BluetoothGatt bluetoothGatt;
 
                 public GetInkeyState() {
                     super("Get Inkey");
@@ -1159,7 +1161,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         if(firmwareVersion <= 4141) {
                             handleStateMachineEvent(InkeyFoundV2.ID, Event.newSimplePayload(inkeyCollator));
                         } else {
-                            handleStateMachineEvent(Event.InkeyFoundV3.ID, Event.newSimplePayload(inkeyCollator));
+                            HashMap<String, Object> payload = new PayloadBuilder()
+                                    .add(inkeyCollator)
+                                    .add(this.bluetoothGatt)
+                                    .build();
+                            handleStateMachineEvent(Event.InkeyFoundV3.ID, payload);
                         }
                     }
                 }
@@ -1168,7 +1174,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     @Override
                     public void run() {
                         BluetoothGattService bluetoothGattService = (BluetoothGattService) mPayload.get(BluetoothGattService.class.getSimpleName());
-                        BluetoothGatt bluetoothGatt = (BluetoothGatt) mPayload.get(BluetoothGatt.class.getSimpleName());
+                        bluetoothGatt = (BluetoothGatt) mPayload.get(BluetoothGatt.class.getSimpleName());
                         firmwareVersion = (int) mPayload.get(Event.GeminiFirmware.FIRMWARE_VERSION);
                         requestInkey(bluetoothGattService, bluetoothGatt);
                     }
@@ -1218,7 +1224,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 private class GetV3Outkey extends Action {
                     @Override
                     public void run() {
-
+                        BluetoothGatt bluetoothGatt = PayloadBuilder.getPayload(BluetoothGatt.class, mPayload);
+                        String address = bluetoothGatt.getDevice().getAddress();
                     }
                 }
             }
