@@ -26,4 +26,7 @@ public class Event {
         public static final String FIRMWARE_VERSION = "Firmware Version";
     }
 
+    public class GotOutkey {
+        public static final String ID = "Got Outkey";
+    }
 }

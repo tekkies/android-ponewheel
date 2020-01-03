@@ -1006,6 +1006,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             private ServicesDiscoveredState servicesDiscoveredState;
             private GetOutkeyV3State getOutKeyV3State;
             private GetOutkeyV2State getOutKeyV2State;
+            private SendingOutkeyState sendingOutkeyState;
 
             public State build() {
 
@@ -1016,6 +1017,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 getInkeyState = new GetInkeyState();
                 getOutKeyV2State = new GetOutkeyV2State();
                 getOutKeyV3State = new GetOutkeyV3State();
+                sendingOutkeyState = new SendingOutkeyState();
 
                 State gattConnectFailed = new State("TODO Gatt connect failed");
                 State notOnewheel = new State("TODO Not Onewheel");
@@ -1034,6 +1036,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 getInkeyState.addHandler(SERIAL_READ, getInkeyState, TransitionKind.Internal, new OnSerialRead());
                 getInkeyState.addHandler(InkeyFoundV2.ID, getOutKeyV2State, TransitionKind.External);
                 getInkeyState.addHandler(Event.InkeyFoundV3.ID, getOutKeyV3State, TransitionKind.External);
+                getOutKeyV2State.addHandler(Event.GotOutkey.ID, sendingOutkeyState, TransitionKind.External);
+                getOutKeyV3State.addHandler(Event.GotOutkey.ID, sendingOutkeyState, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
@@ -1044,6 +1048,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         getInkeyState,
                         getOutKeyV2State,
                         getOutKeyV3State,
+                        sendingOutkeyState,
 
                         gattConnectFailed,
                         notOnewheel);
@@ -1211,6 +1216,20 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
 
                 private class GetV3Outkey extends Action {
+                    @Override
+                    public void run() {
+
+                    }
+                }
+            }
+
+            private class SendingOutkeyState extends State {
+                public SendingOutkeyState() {
+                    super("Sending Outkey");
+                    onEnter(new SendOutkey());
+                }
+
+                private class SendOutkey extends Action {
                     @Override
                     public void run() {
 

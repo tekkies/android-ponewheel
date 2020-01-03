@@ -24,6 +24,9 @@ Get_V2_Outkey : Enter: GetV2Outkey
             state "Get V3 Outkey" as Get_V3_Outkey  {
 Get_V3_Outkey : Enter: GetV3Outkey
             }
+            state "Sending Outkey" as Sending_Outkey  {
+Sending_Outkey : Enter: SendOutkey
+            }
             state "TODO Gatt connect failed" as TODO_Gatt_connect_failed  {
             }
             state "TODO Not Onewheel" as TODO_Not_Onewheel  {
@@ -52,6 +55,8 @@ Reading_Firmware --> Get_Inkey : Gemini_Firmware
 Get_Inkey --> Get_Inkey : Serial_Read
 Get_Inkey --> Get_V2_Outkey : Inkey_Found_(V2)
 Get_Inkey --> Get_V3_Outkey : Inkey_Found_(V3)
+Get_V2_Outkey --> Sending_Outkey : Got_Outkey
+Get_V3_Outkey --> Sending_Outkey : Got_Outkey
 Connecting --> Discovering_Services : Gatt_Connected
 Connecting --> TODO_Gatt_connect_failed : Todo_Gatt_Connect_Fail
 Discover_Services --> TBC : TBC
