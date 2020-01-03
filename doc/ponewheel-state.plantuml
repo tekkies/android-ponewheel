@@ -18,7 +18,9 @@ Showtime : Enter: OnEnter
             state "Get Inkey" as Get_Inkey  {
 Get_Inkey : Enter: RequestInkey
             }
-            state "Get Outkey" as Get_Outkey  {
+            state "Get V2 Outkey" as Get_V2_Outkey  {
+            }
+            state "Get V3 Outkey" as Get_V3_Outkey  {
             }
             state "TODO Gatt connect failed" as TODO_Gatt_connect_failed  {
             }
@@ -46,7 +48,8 @@ Discovering_Services --> Reading_Firmware : Read_Firmware
 Reading_Firmware --> Showtime : Gen_1_Firmware
 Reading_Firmware --> Get_Inkey : Gemini_Firmware
 Get_Inkey --> Get_Inkey : Serial_Read
-Get_Inkey --> Get_Outkey : Inkey_Found
+Get_Inkey --> Get_V2_Outkey : Inkey_Found_(V2)
+Get_Inkey --> Get_V3_Outkey : Inkey_Found_(V3)
 Connecting --> Discovering_Services : Gatt_Connected
 Connecting --> TODO_Gatt_connect_failed : Todo_Gatt_Connect_Fail
 Discover_Services --> TBC : TBC

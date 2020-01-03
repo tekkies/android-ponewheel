@@ -32,7 +32,7 @@ import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
-import net.kwatts.powtools.BluetoothStateMachine.Event.InkeyFound;
+import net.kwatts.powtools.BluetoothStateMachine.Event.InkeyFoundV2;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -841,7 +841,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                             HashMap<String, Object> payload = new HashMap<String, Object>(1);
                             payload.put(owGatService.getClass().getSimpleName(), owGatService);
                             payload.put(gatt.getClass().getSimpleName(), gatt);
-                            handleStateMachineEvent(DiscoverSericesStateBuilder.GEMINI_FIRMWARE, payload);
+                            payload.put(Event.GeminiFirmware.FIRMWARE_VERSION, firmwareVersion);
+                            handleStateMachineEvent(Event.GeminiFirmware.ID, payload);
                         }
 
                         IUnlocker unlocker = session.getUnlocker();
@@ -998,13 +999,13 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
             public static final String READ_FIRMWARE_REVISION = "Read Firmware";
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
-            public static final String GEMINI_FIRMWARE = "Gemini Firmware";
             public static final String SERIAL_READ = "Serial Read";
             private GetInkeyState getInkeyState;
-            private State getOutKeyState;
+            private State getOutKeyV2State;
             private ConnectingState connectingState;
             private DiscoveringServicesState discoveringServicesState;
             private ServicesDiscoveredState servicesDiscoveredState;
+            private State getOutKeyV3State;
 
             public State build() {
 
@@ -1013,7 +1014,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 servicesDiscoveredState = new ServicesDiscoveredState();
                 State readingFirmawareState = new ReadingFirmwareState();
                 getInkeyState = new GetInkeyState();
-                getOutKeyState = new State("Get Outkey");
+                getOutKeyV2State = new State("Get V2 Outkey");
+                getOutKeyV3State = new State("Get V3 Outkey");
 
                 State gattConnectFailed = new State("TODO Gatt connect failed");
                 State notOnewheel = new State("TODO Not Onewheel");
@@ -1027,10 +1029,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 ShowTimeState showTimeState = new ShowTimeState();
                 readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
-                readingFirmawareState.addHandler(GEMINI_FIRMWARE, getInkeyState, TransitionKind.External);
+                readingFirmawareState.addHandler(Event.GeminiFirmware.ID, getInkeyState, TransitionKind.External);
 
                 getInkeyState.addHandler(SERIAL_READ, getInkeyState, TransitionKind.Internal, new OnSerialRead());
-                getInkeyState.addHandler(InkeyFound.ID, getOutKeyState, TransitionKind.External);
+                getInkeyState.addHandler(InkeyFoundV2.ID, getOutKeyV2State, TransitionKind.External);
+                getInkeyState.addHandler(Event.InkeyFoundV3.ID, getOutKeyV3State, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
@@ -1039,7 +1042,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         readingFirmawareState,
                         showTimeState,
                         getInkeyState,
-                        getOutKeyState,
+                        getOutKeyV2State,
+                        getOutKeyV3State,
 
                         gattConnectFailed,
                         notOnewheel);
@@ -1135,6 +1139,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public class GetInkeyState extends State {
 
                 private final InkeyCollator inkeyCollator;
+                private int firmwareVersion;
 
                 public GetInkeyState() {
                     super("Get Inkey");
@@ -1146,7 +1151,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     byte[] value = bluetoothGattCharacteristic.getValue();
                     inkeyCollator.append(value);
                     if(inkeyCollator.isFound()) {
-                        handleStateMachineEvent(InkeyFound.ID, InkeyFound.newPayload(inkeyCollator));
+                        if(firmwareVersion <= 4141) {
+                            handleStateMachineEvent(InkeyFoundV2.ID, Event.newSimplePayload(inkeyCollator));
+                        } else {
+                            handleStateMachineEvent(Event.InkeyFoundV3.ID, Event.newSimplePayload(inkeyCollator));
+                        }
                     }
                 }
 
@@ -1155,7 +1164,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     public void run() {
                         BluetoothGattService bluetoothGattService = (BluetoothGattService) mPayload.get(BluetoothGattService.class.getSimpleName());
                         BluetoothGatt bluetoothGatt = (BluetoothGatt) mPayload.get(BluetoothGatt.class.getSimpleName());
-                        //int firmwareVersion = unsignedShort(bluetoothGattCharacteristic.getValue());
+                        firmwareVersion = (int) mPayload.get(Event.GeminiFirmware.FIRMWARE_VERSION);
                         requestInkey(bluetoothGattService, bluetoothGatt);
                     }
                 }
