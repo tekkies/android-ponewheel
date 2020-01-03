@@ -19,8 +19,10 @@ Showtime : Enter: OnEnter
 Get_Inkey : Enter: RequestInkey
             }
             state "Get V2 Outkey" as Get_V2_Outkey  {
+Get_V2_Outkey : Enter: GetV2Outkey
             }
             state "Get V3 Outkey" as Get_V3_Outkey  {
+Get_V3_Outkey : Enter: GetV3Outkey
             }
             state "TODO Gatt connect failed" as TODO_Gatt_connect_failed  {
             }

@@ -1001,11 +1001,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
             public static final String SERIAL_READ = "Serial Read";
             private GetInkeyState getInkeyState;
-            private State getOutKeyV2State;
             private ConnectingState connectingState;
             private DiscoveringServicesState discoveringServicesState;
             private ServicesDiscoveredState servicesDiscoveredState;
-            private State getOutKeyV3State;
+            private GetOutkeyV3State getOutKeyV3State;
+            private GetOutkeyV2State getOutKeyV2State;
 
             public State build() {
 
@@ -1014,8 +1014,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 servicesDiscoveredState = new ServicesDiscoveredState();
                 State readingFirmawareState = new ReadingFirmwareState();
                 getInkeyState = new GetInkeyState();
-                getOutKeyV2State = new State("Get V2 Outkey");
-                getOutKeyV3State = new State("Get V3 Outkey");
+                getOutKeyV2State = new GetOutkeyV2State();
+                getOutKeyV3State = new GetOutkeyV3State();
 
                 State gattConnectFailed = new State("TODO Gatt connect failed");
                 State notOnewheel = new State("TODO Not Onewheel");
@@ -1187,6 +1187,34 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 public void run() {
                     BluetoothGattCharacteristic bluetoothGattCharacteristic = (BluetoothGattCharacteristic) mPayload.get(BluetoothGattCharacteristic.class.getSimpleName());
                     getInkeyState.onSerialRead(bluetoothGattCharacteristic);
+                }
+            }
+
+            private class GetOutkeyV2State extends State {
+                public GetOutkeyV2State() {
+                    super("Get V2 Outkey");
+                    onEnter(new GetV2Outkey());
+                }
+
+                private class GetV2Outkey extends Action {
+                    @Override
+                    public void run() {
+
+                    }
+                }
+            }
+
+            private class GetOutkeyV3State extends State {
+                public GetOutkeyV3State() {
+                    super("Get V3 Outkey");
+                    onEnter(new GetV3Outkey());
+                }
+
+                private class GetV3Outkey extends Action {
+                    @Override
+                    public void run() {
+
+                    }
                 }
             }
         }
