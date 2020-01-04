@@ -29,5 +29,9 @@ public class Event {
     public class GotOutkey {
         public static final String ID = "Got Outkey";
     }
+
+    public class OutkeyWritten {
+        public static final String ID = "Outkey Written";
+    }
 }
 

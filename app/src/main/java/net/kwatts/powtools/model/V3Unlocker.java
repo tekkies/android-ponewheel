@@ -1,10 +1,7 @@
 package net.kwatts.powtools.model;
 
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
-import android.os.Handler;
-import android.os.Looper;
 
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.util.BluetoothUtil;
@@ -12,41 +9,25 @@ import net.kwatts.powtools.util.Util;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.UUID;
 
 import timber.log.Timber;
 
-class V3Unlocker implements IUnlocker {
+public class V3Unlocker implements IUnlocker {
+
+    private String address;
+
+    public V3Unlocker(String address) {
+        this.address = address.replace(":", "").toLowerCase();
+    }
+
+    public V3Unlocker() {
+
+    }
 
     @Override
     public boolean isGemini() {
         return true;
-    }
-
-    @Override
-    public void start(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt) {
-        String key = lookupKey(gatt);
-        if(IsKeySensible(key)) {
-            sendTheKeyDelayed(owGatService, gatt, key);
-        } else {
-            Timber.w("Key '%s' does not look right", key);
-        }
-
-    }
-
-    private String lookupKey(BluetoothGatt gatt) {
-        String key = "";
-        String address = gatt.getDevice().getAddress().replace(":", "").toLowerCase();
-        HashMap<String, String> map = buildKeyMap();
-        if(map.containsKey(address)) {
-            key = map.get(address);
-        } else {
-            Timber.w("Unable to find key for address %s", address);
-        }
-        return key;
     }
 
     @NotNull
@@ -64,36 +45,18 @@ class V3Unlocker implements IUnlocker {
         return map;
     }
 
-    private void sendTheKeyDelayed(BluetoothGattService owGatService, BluetoothGatt gatt, String key) {
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(new Runnable() {
-            public void run() {
-                sendTheKey(owGatService, gatt, key);
-            }
-        }, 500);
+
+    public byte[] getKey() {
+        String key = null;
+        HashMap<String, String> map = buildKeyMap();
+        if(map.containsKey(address)) {
+            key = map.get(address);
+        }
+        return Util.StringToByteArrayFastest(key);
     }
 
-    private boolean IsKeySensible(String key) {
-        return key.length() == 40;
-    }
+    @Override
+    public void start(BluetoothUtil instance, BluetoothGattService owGatService, BluetoothGatt gatt) {
 
-    private void sendTheKey(BluetoothGattService owGatService, BluetoothGatt gatt, String key) {
-        BluetoothGattCharacteristic lc = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialWrite));
-        Timber.i( "Send HardCoded key----------------------------------------------------");
-        ByteArrayOutputStream outkey = new ByteArrayOutputStream();
-        try {
-            outkey.write(Util.StringToByteArrayFastest(key));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        lc.setValue(outkey.toByteArray());
-        if (!gatt.writeCharacteristic(lc)) {
-            BluetoothGattCharacteristic bluetoothGattCharacteristic2 = lc;
-            //sendKey = true;
-        } else {
-            //sendKey = false;
-            //gatt.setCharacteristicNotification(bluetoothGattCharacteristic, false);
-        }
-        outkey.reset();
     }
 }

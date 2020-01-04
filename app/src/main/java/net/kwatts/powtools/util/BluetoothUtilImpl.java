@@ -22,6 +22,7 @@ import android.os.Environment;
 import android.os.ParcelUuid;
 import android.os.Handler;
 import android.os.Looper;
+import android.speech.tts.TextToSpeech;
 import android.widget.Toast;
 import android.databinding.ObservableField;
 
@@ -34,6 +35,7 @@ import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
 import net.kwatts.powtools.BluetoothStateMachine.Event.InkeyFoundV2;
+import net.kwatts.powtools.model.V3Unlocker;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -42,21 +44,18 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.security.MessageDigest;
 import java.io.ByteArrayOutputStream;
-import java.io.ByteArrayInputStream;
-import java.security.DigestInputStream;
 
 import de.artcom.hsm.Action;
 import de.artcom.hsm.State;
@@ -66,6 +65,8 @@ import de.artcom.hsm.TransitionKind;
 import timber.log.Timber;
 import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
+
+import static android.speech.tts.TextToSpeech.SUCCESS;
 
 public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFilledCallback {
 
@@ -99,6 +100,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     StateMachine stateMachine; //see docs of https://github.com/artcom/hsm-cs
     private DiagramCache diagramCache;
     private ConnectionEnabledStateMachineBuilder connectionEnabledStateMachineBuilder;
+    private StateAnouncer stateAnouncer;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -108,6 +110,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         this.mainActivity = mainActivity;
         this.mContext = mainActivity.getApplicationContext();
         this.mOWDevice = mOWDevice;
+        stateAnouncer = new StateAnouncer(mainActivity);
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
 
@@ -213,10 +216,28 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         handleStateMachineEvent(event, new HashMap<String, Object>());
     }
 
-    private void handleStateMachineEvent(String event, HashMap<String, Object> payload) {
+    private void handleStateMachineEvent(String event, Map<String, Object> payload) {
         stateMachine.handleEvent(event, payload);
         logTransition(event);
+        //tts();
         updateStateDiagram();
+    }
+
+    private void tts() {
+        State activeState = getActiveState();
+        if(activeState != null) {
+            stateAnouncer.say(activeState.getId());
+        }
+     }
+
+
+    private State getActiveState() {
+        State activeState = null;
+        if(stateMachine != null) {
+            List<State> allActiveStates = stateMachine.getAllActiveStates();
+            activeState = allActiveStates.get(allActiveStates.size()-1);
+        }
+        return activeState;
     }
 
     private void logTransition(String event) {
@@ -887,7 +908,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                         handleStateMachineEvent(DiscoverSericesStateBuilder.SERIAL_READ, newSimplePayload(bluetoothGattCharacteristic));
 
-
+                        /*AJWOZ
                         try {
                             Timber.d("Setting up inkey!");
                             inkey.write(bluetoothGattCharacteristic.getValue());
@@ -935,7 +956,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                             sb3.append("Exception with GEMINI obfuckstation:");
                             sb3.append(e.getMessage());
                             Timber.d("GEMINI" + sb3.toString());
-                        }
+                        }*/
                     }
 
 
@@ -948,12 +969,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 @Override
                 public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
                     Timber.i("onCharacteristicWrite: " + status + ", CharacteristicUuid=" + c.getUuid().toString());
-                    // Step 5: In OnCharacteristicWrite, if isGemini & characteristic is Serial Write, NOW setNotify
-                    // and read all the characteristics you want. its also only now that I start the
-                    // repeated handshake clock thing but I don't think it really matters, this all happens pretty quick.
-                    if (isGemini() && (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialWrite))) {
-                        Timber.d("Step 5: Gemini and serial write, kicking off all the read and notifies...");
-                        whenActuallyConnected();
+                    if (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialWrite)) {
+                        handleStateMachineEvent(Event.OutkeyWritten.ID);
+                        //AJWOZ whenActuallyConnected();
                     }
                 }
 
@@ -1039,6 +1057,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 getInkeyState.addHandler(Event.InkeyFoundV3.ID, getOutKeyV3State, TransitionKind.External);
                 getOutKeyV2State.addHandler(Event.GotOutkey.ID, sendingOutkeyState, TransitionKind.External);
                 getOutKeyV3State.addHandler(Event.GotOutkey.ID, sendingOutkeyState, TransitionKind.External);
+
+                sendingOutkeyState.addHandler(Event.OutkeyWritten.ID, showTimeState, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
@@ -1161,7 +1181,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         if(firmwareVersion <= 4141) {
                             handleStateMachineEvent(InkeyFoundV2.ID, Event.newSimplePayload(inkeyCollator));
                         } else {
-                            HashMap<String, Object> payload = new PayloadBuilder()
+                            Map<String, Object> payload = new PayloadBuilder()
                                     .add(inkeyCollator)
                                     .add(this.bluetoothGatt)
                                     .build();
@@ -1216,6 +1236,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             }
 
             private class GetOutkeyV3State extends State {
+
                 public GetOutkeyV3State() {
                     super("Get V3 Outkey");
                     onEnter(new GetV3Outkey());
@@ -1226,6 +1247,12 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     public void run() {
                         BluetoothGatt bluetoothGatt = PayloadBuilder.getPayload(BluetoothGatt.class, mPayload);
                         String address = bluetoothGatt.getDevice().getAddress();
+                        byte[] key = new V3Unlocker(address).getKey();
+                        Map<String, Object> payload =
+                            new PayloadBuilder(mPayload)
+                            .add(key)
+                            .build();
+                        handleStateMachineEvent(Event.GotOutkey.ID, payload);
                     }
                 }
             }
@@ -1239,11 +1266,50 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 private class SendOutkey extends Action {
                     @Override
                     public void run() {
-
+                        BluetoothGatt bluetoothGatt = PayloadBuilder.getPayload(BluetoothGatt.class, mPayload);
+                        final byte[] key = PayloadBuilder.getPayload(byte[].class, mPayload);
+                        handler.postDelayed(() ->
+                            sendTheKey(owGatService, bluetoothGatt, key),
+                            500);
                     }
+
+                    private void sendTheKey(BluetoothGattService owGatService, BluetoothGatt gatt, byte[] key) {
+                        BluetoothGattCharacteristic onewheelCharacteristicUartSerialWrite = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialWrite));
+                        onewheelCharacteristicUartSerialWrite.setValue(key);
+                        if (!gatt.writeCharacteristic(onewheelCharacteristicUartSerialWrite)) {
+                            BluetoothGattCharacteristic bluetoothGattCharacteristic2 = onewheelCharacteristicUartSerialWrite;
+                        } else {
+                            //sendKey = false;
+                            //gatt.setCharacteristicNotification(bluetoothGattCharacteristic, false);
+                        }
+                    }
+
                 }
             }
         }
     }
 
+    private class StateAnouncer implements TextToSpeech.OnInitListener {
+
+        private final TextToSpeech textToSpeech;
+        private int utterance;
+        private int status;
+
+        public StateAnouncer(Context context) {
+
+            textToSpeech = new TextToSpeech(context, this);
+            textToSpeech.setLanguage(Locale.US);
+        }
+
+        public void say(String text) {
+            if(status == SUCCESS) {
+                textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, Integer.toString(utterance++));
+            }
+        }
+
+        @Override
+        public void onInit(int status) {
+            this.status = status;
+        }
+    }
 }
