@@ -57,6 +57,7 @@ Get_Inkey --> Get_V2_Outkey : Inkey_Found_(V2)
 Get_Inkey --> Get_V3_Outkey : Inkey_Found_(V3)
 Get_V2_Outkey --> Sending_Outkey : Got_Outkey
 Get_V3_Outkey --> Sending_Outkey : Got_Outkey
+Sending_Outkey --> Showtime : Outkey_Written
 Connecting --> Discovering_Services : Gatt_Connected
 Connecting --> TODO_Gatt_connect_failed : Todo_Gatt_Connect_Fail
 Discover_Services --> TBC : TBC
