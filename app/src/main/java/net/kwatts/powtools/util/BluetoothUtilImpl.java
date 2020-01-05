@@ -100,7 +100,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     StateMachine stateMachine; //see docs of https://github.com/artcom/hsm-cs
     private DiagramCache diagramCache;
     private ConnectionEnabledStateMachineBuilder connectionEnabledStateMachineBuilder;
-    private StateAnouncer stateAnouncer;
+    private StateAnnouncer stateAnouncer;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -110,7 +110,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         this.mainActivity = mainActivity;
         this.mContext = mainActivity.getApplicationContext();
         this.mOWDevice = mOWDevice;
-        stateAnouncer = new StateAnouncer(mainActivity);
+        stateAnouncer = new StateAnnouncer(mainActivity);
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
 
@@ -219,7 +219,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     private void handleStateMachineEvent(String event, Map<String, Object> payload) {
         stateMachine.handleEvent(event, payload);
         logTransition(event);
-        //tts();
+        tts();
         updateStateDiagram();
     }
 
@@ -233,9 +233,14 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     private State getActiveState() {
         State activeState = null;
-        if(stateMachine != null) {
-            List<State> allActiveStates = stateMachine.getAllActiveStates();
-            activeState = allActiveStates.get(allActiveStates.size()-1);
+        try {
+            if(stateMachine != null) {
+                List<State> allActiveStates = stateMachine.getAllActiveStates();
+                int index = allActiveStates.size() - 1;
+                activeState = allActiveStates.get(index);
+        }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return activeState;
     }
@@ -1288,13 +1293,13 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
     }
 
-    private class StateAnouncer implements TextToSpeech.OnInitListener {
+    private class StateAnnouncer implements TextToSpeech.OnInitListener {
 
         private final TextToSpeech textToSpeech;
         private int utterance;
         private int status;
 
-        public StateAnouncer(Context context) {
+        public StateAnnouncer(Context context) {
 
             textToSpeech = new TextToSpeech(context, this);
             textToSpeech.setLanguage(Locale.US);
