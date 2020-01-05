@@ -21,7 +21,12 @@ public class PayloadUtil {
     }
 
     public PayloadUtil add(Object item) {
-        payload.put(item.getClass().getSimpleName(), item);
+        String key = item.getClass().getSimpleName();
+        return add(key, item);
+    }
+
+    public PayloadUtil add(String key, Object item) {
+        payload.put(key, item);
         return this;
     }
 

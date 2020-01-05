@@ -867,11 +867,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         {
                             handleStateMachineEvent(DiscoverSericesStateBuilder.GEN_1_FIRMWARE, newSimplePayload(mainActivity.getBluetoothUtil()));
                         } else {
-                            HashMap<String, Object> payload = new HashMap<String, Object>(1);
-                            payload.put(owGatService.getClass().getSimpleName(), owGatService);
-                            payload.put(gatt.getClass().getSimpleName(), gatt);
-                            payload.put(Event.GeminiFirmware.FIRMWARE_VERSION, firmwareVersion);
-                            handleStateMachineEvent(Event.GeminiFirmware.ID, payload);
+                            PayloadUtil payloadUtil = new PayloadUtil()
+                                    .add(owGatService)
+                                    .add(gatt)
+                                    .add(Event.GeminiFirmware.FIRMWARE_VERSION, firmwareVersion);
+                            handleStateMachineEvent(Event.GeminiFirmware.ID, payloadUtil.build());
                         }
 
                         IUnlocker unlocker = session.getUnlocker();
