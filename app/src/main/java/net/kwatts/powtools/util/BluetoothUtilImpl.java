@@ -28,7 +28,7 @@ import android.databinding.ObservableField;
 
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.BluetoothStateMachine.Event;
-import net.kwatts.powtools.BluetoothStateMachine.PayloadBuilder;
+import net.kwatts.powtools.BluetoothStateMachine.PayloadUtil;
 import net.kwatts.powtools.BuildConfig;
 import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
@@ -1181,7 +1181,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         if(firmwareVersion <= 4141) {
                             handleStateMachineEvent(InkeyFoundV2.ID, Event.newSimplePayload(inkeyCollator));
                         } else {
-                            Map<String, Object> payload = new PayloadBuilder()
+                            Map<String, Object> payload = new PayloadUtil()
                                     .add(inkeyCollator)
                                     .add(this.bluetoothGatt)
                                     .build();
@@ -1245,14 +1245,12 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 private class GetV3Outkey extends Action {
                     @Override
                     public void run() {
-                        BluetoothGatt bluetoothGatt = PayloadBuilder.getPayload(BluetoothGatt.class, mPayload);
+                        PayloadUtil payloadUtil = new PayloadUtil(mPayload);
+                        BluetoothGatt bluetoothGatt = payloadUtil.getPayload(BluetoothGatt.class);
                         String address = bluetoothGatt.getDevice().getAddress();
                         byte[] key = new V3Unlocker(address).getKey();
-                        Map<String, Object> payload =
-                            new PayloadBuilder(mPayload)
-                            .add(key)
-                            .build();
-                        handleStateMachineEvent(Event.GotOutkey.ID, payload);
+                        payloadUtil.add(key);
+                        handleStateMachineEvent(Event.GotOutkey.ID, payloadUtil.build());
                     }
                 }
             }
@@ -1266,8 +1264,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 private class SendOutkey extends Action {
                     @Override
                     public void run() {
-                        BluetoothGatt bluetoothGatt = PayloadBuilder.getPayload(BluetoothGatt.class, mPayload);
-                        final byte[] key = PayloadBuilder.getPayload(byte[].class, mPayload);
+                        PayloadUtil payloadUtil = new PayloadUtil(mPayload);
+                        BluetoothGatt bluetoothGatt = payloadUtil.getPayload(BluetoothGatt.class);
+                        final byte[] key = payloadUtil.getPayload(byte[].class);
                         handler.postDelayed(() ->
                             sendTheKey(owGatService, bluetoothGatt, key),
                             500);

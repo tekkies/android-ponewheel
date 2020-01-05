@@ -3,25 +3,24 @@ package net.kwatts.powtools.BluetoothStateMachine;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PayloadBuilder {
+public class PayloadUtil {
     private Map<String, Object> payload;
 
-    public PayloadBuilder() {
+    public PayloadUtil() {
         payload = new HashMap<>();
-
     }
 
-    public PayloadBuilder(Map<String, Object> payload) {
-        this.payload = payload;
+    public PayloadUtil(Map<String, Object> payload) {
+        this.payload = new HashMap<>(payload);
     }
 
-    public static <T> T getPayload(Class<T> type, Map<String, Object> payload) {
+    public <T> T getPayload(Class<T> type) {
         String key = type.getSimpleName();
         T result = (T) payload.get(key);
         return result;
     }
 
-    public PayloadBuilder add(Object item) {
+    public PayloadUtil add(Object item) {
         payload.put(item.getClass().getSimpleName(), item);
         return this;
     }
