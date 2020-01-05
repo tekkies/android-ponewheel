@@ -1283,9 +1283,13 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         BluetoothGattCharacteristic onewheelCharacteristicUartSerialWrite = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialWrite));
                         onewheelCharacteristicUartSerialWrite.setValue(key);
                         if (gatt.writeCharacteristic(onewheelCharacteristicUartSerialWrite)) {
-                            BluetoothGattCharacteristic CharacteristicUartSerialRead = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));
-                            gatt.setCharacteristicNotification(CharacteristicUartSerialRead, false);
+                            unsubscribeUartSerialRead(owGatService, gatt);
                         }
+                    }
+
+                    private void unsubscribeUartSerialRead(BluetoothGattService owGatService, BluetoothGatt gatt) {
+                        BluetoothGattCharacteristic CharacteristicUartSerialRead = owGatService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));
+                        gatt.setCharacteristicNotification(CharacteristicUartSerialRead, false);
                     }
 
                 }
