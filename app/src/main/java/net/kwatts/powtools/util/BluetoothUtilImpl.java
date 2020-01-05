@@ -102,7 +102,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     StateMachine stateMachine; //see docs of https://github.com/artcom/hsm-cs
     private DiagramCache diagramCache;
     private ConnectionEnabledStateMachineBuilder connectionEnabledStateMachineBuilder;
-    private StateAnnouncer stateAnouncer;
+    private StateAnnouncer stateAnnouncer;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -112,7 +112,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         this.mainActivity = mainActivity;
         this.mContext = mainActivity.getApplicationContext();
         this.mOWDevice = mOWDevice;
-        stateAnouncer = new StateAnnouncer(mainActivity);
+        stateAnnouncer = new StateAnnouncer(mainActivity);
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
 
@@ -221,14 +221,14 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     private void handleStateMachineEvent(String event, Map<String, Object> payload) {
         stateMachine.handleEvent(event, payload);
         logTransition(event);
-        tts();
+        announceState();
         updateStateDiagram();
     }
 
-    private void tts() {
+    private void announceState() {
         State activeState = getActiveState();
         if(activeState != null) {
-            stateAnouncer.say(activeState.getId());
+            stateAnnouncer.announce(activeState.getId());
         }
      }
 
@@ -1163,7 +1163,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 private class OnEnter extends Action {
                     @Override
                     public void run() {
-                        BluetoothUtil bluetoothUtil = (BluetoothUtil)mPayload.get(BluetoothUtil.class.getSimpleName());
+                        BluetoothUtil bluetoothUtil = getBluetoothUtil();
                         bluetoothUtil.whenActuallyConnected();
                     }
                 }
@@ -1295,6 +1295,10 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
     }
 
+    private BluetoothUtilImpl getBluetoothUtil() {
+        return this;
+    }
+
     private class StateAnnouncer implements TextToSpeech.OnInitListener {
 
         private final TextToSpeech textToSpeech;
@@ -1309,7 +1313,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             lastUtteranceStopwatch = new Stopwatch().reset().start();
         }
 
-        public void say(String utterance) {
+        public void announce(String utterance) {
             if(status == SUCCESS) {
                 utterance = reduceRepetition(utterance);
                 if(utterance != null) {
