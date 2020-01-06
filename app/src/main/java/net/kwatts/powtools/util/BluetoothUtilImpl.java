@@ -29,6 +29,7 @@ import android.databinding.ObservableField;
 import com.google.common.base.Stopwatch;
 
 import net.kwatts.powtools.App;
+import net.kwatts.powtools.BluetoothStateMachine;
 import net.kwatts.powtools.Event;
 import net.kwatts.powtools.PayloadUtil;
 import net.kwatts.powtools.BuildConfig;
@@ -105,6 +106,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     private StateAnnouncer stateAnnouncer;
     private Runnable timeoutEventRunnable;
     private File ponewheelDirectory;
+    private BluetoothStateMachine bluetoothStateMachine;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -117,6 +119,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         stateAnnouncer = new StateAnnouncer(mainActivity);
 
         this.mBluetoothAdapter = ((BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
+
+        bluetoothStateMachine = new BluetoothStateMachine();
 
         connectionEnabledStateMachineBuilder = new ConnectionEnabledStateMachineBuilder(this);
         stateMachine = connectionEnabledStateMachineBuilder.build();
