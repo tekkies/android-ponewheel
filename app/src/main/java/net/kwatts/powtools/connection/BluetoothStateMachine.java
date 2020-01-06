@@ -1,5 +1,6 @@
-package net.kwatts.powtools;
+package net.kwatts.powtools.connection;
 
+import net.kwatts.powtools.DisabledState;
 import net.kwatts.powtools.util.BluetoothUtilImpl;
 
 import de.artcom.hsm.State;

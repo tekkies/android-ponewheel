@@ -29,7 +29,7 @@ import android.databinding.ObservableField;
 import com.google.common.base.Stopwatch;
 
 import net.kwatts.powtools.App;
-import net.kwatts.powtools.BluetoothStateMachine;
+import net.kwatts.powtools.connection.BluetoothStateMachine;
 import net.kwatts.powtools.DisabledState;
 import net.kwatts.powtools.Event;
 import net.kwatts.powtools.PayloadUtil;
