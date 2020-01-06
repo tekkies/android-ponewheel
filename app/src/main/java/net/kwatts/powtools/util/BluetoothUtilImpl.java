@@ -830,13 +830,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                             mOWDevice.deviceMacAddress.get(),
                             mOWDevice.deviceMacName.get()
                     );
-                    //AJWOZ scanLeDevice(false);
-
-                    // Stability updates per https://github.com/ponewheel/android-ponewheel/issues/86#issuecomment-460033659
-                    // Step 1: In OnServicesDiscovered, JUST read the firmware version.
                     Timber.d("Stability Step 1: Only reading the firmware version!");
-
-
                     handleStateMachineEvent(DiscoverSericesStateBuilder.READ_FIRMWARE_REVISION);
                 }
 
@@ -851,13 +845,14 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         characteristicReadQueue.remove();
                     }
 
-                    // Stability Step 2: In OnCharacteristicRead, if the value is of the char firmware version, parse it's value.
-                    // If its >= 4034, JUST write the descriptor for the Serial Read characteristic to Enable notifications,
-                    // and set notify to true with gatt. Otherwise its Andromeda or lower and we can call the method to
-                    // read & notify all the characteristics we want. (Although I learned doing this that some android devices
-                    // have a max of 12 notify characteristics at once for some reason. At least I'm pretty sure.)
-                    // I also set a class-wide boolean value isGemini to true here so I don't have to keep checking if its Andromeda
-                    // or Gemini later on.
+
+                    Timber.d("Stability Step 2: In OnCharacteristicRead, if the value is of the char firmware version, parse it's value.\n" +
+                            "If its >= 4034, JUST write the descriptor for the Serial Read characteristic to Enable notifications,\n" +
+                            "and set notify to true with gatt. Otherwise its Andromeda or lower and we can call the method to\n" +
+                            "read & notify all the characteristics we want. (Although I learned doing this that some android devices\n" +
+                            "have a max of 12 notify characteristics at once for some reason. At least I'm pretty sure.)\n" +
+                            "I also set a class-wide boolean value isGemini to true here so I don't have to keep checking if its Andromeda\n" +
+                            "or Gemini later on.");
                     if (characteristic_uuid.equals(OWDevice.OnewheelCharacteristicFirmwareRevision)) {
                         Timber.d("We have the firmware revision! Checking version.");
                         int firmwareVersion = unsignedShort(bluetoothGattCharacteristic.getValue());
@@ -881,40 +876,17 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         Timber.d("Got ride mode from the main UI thread:" + bluetoothGattCharacteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
                     }
 
-                    if (BuildConfig.DEBUG) {
-                        byte[] v_bytes = bluetoothGattCharacteristic.getValue();
-                        StringBuilder sb = new StringBuilder();
-                        for (byte b : bluetoothGattCharacteristic.getValue()) {
-                            sb.append(String.format("%02x", b));
-                        }
-                        Timber.d("HEX %02x: " + sb);
-                        Timber.d("Arrays.toString() value: " + Arrays.toString(v_bytes));
-                        Timber.d("String value: " + bluetoothGattCharacteristic.getStringValue(0));
-                        Timber.d("Unsigned short: " + unsignedShort(v_bytes));
-                        Timber.d("getIntValue(FORMAT_UINT8,0) " + bluetoothGattCharacteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0));
-                        Timber.d("getIntValue(FORMAT_UINT8,1) " + bluetoothGattCharacteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1));
-                    }
-
                     mOWDevice.processUUID(bluetoothGattCharacteristic);
-
                     mOWDevice.setBatteryRemaining(mainActivity);
-
-                    // Callback to make sure the queue is drained
-
                     if (characteristicReadQueue.size() > 0) {
                         gatt.readCharacteristic(characteristicReadQueue.element());
                     }
-
                 }
 
                 @Override
                 public void onCharacteristicChanged(BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic bluetoothGattCharacteristic) {
-
                     if (isGemini() && (bluetoothGattCharacteristic.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {
-
-
                         handleStateMachineEvent(DiscoverSericesStateBuilder.SERIAL_READ, newSimplePayload(bluetoothGattCharacteristic));
-
                         /*AJWOZ
                         try {
                             Timber.d("Setting up inkey!");
@@ -966,9 +938,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         }*/
                     }
 
-
                     mOWDevice.processUUID(bluetoothGattCharacteristic);
-
                     mOWDevice.setBatteryRemaining(mainActivity);
                 }
 
@@ -977,8 +947,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
                     Timber.i("onCharacteristicWrite: " + status + ", CharacteristicUuid=" + c.getUuid().toString());
                     if (c.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialWrite)) {
+                        Timber.d("Step 3: Is Gemini, writing the descriptor onto itself");
                         handleStateMachineEvent(Event.OutkeyWritten.ID);
-                        //AJWOZ whenActuallyConnected();
                     }
                 }
 
@@ -1001,21 +971,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                             gatt.readCharacteristic(characteristicReadQueue.element());
                         }
                     }
-
-                    // Step 3: In OnDescriptorWrite, if isGemini and the characteristic descriptor that was
-                    // written was Serial Write, then trigger the byte stream by writing the firmware version
-                    // onto itself.
-            /*
-            if (isGemini && (descriptor.equals(OWDevice.OnewheelCharacteristicUartSerialWrite))) {
-                Timber.d("Step 3: Is Gemini, writing the descriptor onto itself");
-                gatt.writeDescriptor(descriptor);
-            }
-            */
                 }
-
-
             };
-
         }
 
         public class DiscoverSericesStateBuilder {
@@ -1208,7 +1165,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
 
                 public void requestInkey(BluetoothGattService bluetoothGattService, BluetoothGatt bluetoothGatt) {
-                    Timber.d("It's Gemini!");
                     Timber.d("Stability Step 2.1: JUST write the descriptor for the Serial Read characteristic to Enable notifications");
                     BluetoothGattCharacteristic gC = bluetoothGattService.getCharacteristic(UUID.fromString(OWDevice.OnewheelCharacteristicUartSerialRead));
                     bluetoothGatt.setCharacteristicNotification(gC, true);
