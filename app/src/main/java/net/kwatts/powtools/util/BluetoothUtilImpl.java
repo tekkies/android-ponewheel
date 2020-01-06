@@ -103,6 +103,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     private DiagramCache diagramCache;
     private ConnectionEnabledStateMachineBuilder connectionEnabledStateMachineBuilder;
     private StateAnnouncer stateAnnouncer;
+    private Runnable timeoutEventRunnable;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -219,6 +220,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     }
 
     private void handleStateMachineEvent(String event, Map<String, Object> payload) {
+        cancelStateTimeout();
         stateMachine.handleEvent(event, payload);
         logTransition(event);
         announceState();
@@ -631,19 +633,20 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public State build() {
 
                 InitState init = new InitState();
-                State adapterDisabled = new State(ADAPTER_DISABLED);
+                State adapterDisabledState = new State(ADAPTER_DISABLED);
                 ConnectionStateMachine connectionStateMachine = new ConnectionStateMachine();
                 State adapterEnabledState = new Sub(ADAPTER_ENABLED, connectionStateMachine.createConnectionStateMachine());
 
+                adapterEnabledState.addHandler(ADAPTER_DISABLED, adapterDisabledState, TransitionKind.External);
 
-                adapterEnabledState.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+                adapterDisabledState.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
 
-                adapterDisabled.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
+
 
                 init.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
-                init.addHandler(ADAPTER_DISABLED, adapterDisabled, TransitionKind.External);
+                init.addHandler(ADAPTER_DISABLED, adapterDisabledState, TransitionKind.External);
 
-                return new ConnectionEnabledState(new StateMachine(init, adapterDisabled, adapterEnabledState));
+                return new ConnectionEnabledState(new StateMachine(init, adapterDisabledState, adapterEnabledState));
             }
 
             private class InitState extends State {
@@ -654,19 +657,37 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
 
             }
+
+        }
+    }
+
+    private void setStateTimeout(String event, int ms) {
+        cancelStateTimeout();
+        timeoutEventRunnable = () -> {
+            handleStateMachineEvent(event);
+        };
+        handler.postDelayed(timeoutEventRunnable, ms);
+    }
+
+    private void cancelStateTimeout() {
+        if(timeoutEventRunnable != null) {
+            handler.removeCallbacks(timeoutEventRunnable);
+            timeoutEventRunnable = null;
         }
     }
 
     class ConnectionStateMachine {
 
 
-        public static final String ONEWHEEL_FOUND = "Onewheel found";
+        public static final String ONEWHEEL_FOUND = "Device found";
         private ScanningState scanningState;
         private State tbcState;
+        public RecoveryState recoveryState;
 
 
         public StateMachine createConnectionStateMachine() {
             scanningState = new ScanningState();
+            recoveryState = new RecoveryState();
 
             State discoverServices = new DiscoverSericesStateBuilder().build();
             scanningState.addHandler(ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
@@ -674,7 +695,12 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             tbcState = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
             discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, tbcState, TransitionKind.External);
 
-            return new StateMachine(scanningState, discoverServices, tbcState);
+
+            recoveryState.addHandler(Event.Timeout.ID, scanningState, TransitionKind.External);
+
+
+
+            return new StateMachine(scanningState, discoverServices, recoveryState, tbcState);
         }
 
         private class ScanningState extends State {
@@ -1248,6 +1274,21 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         gatt.setCharacteristicNotification(CharacteristicUartSerialRead, false);
                     }
 
+                }
+            }
+        }
+
+
+        private class RecoveryState extends State {
+            public RecoveryState() {
+                super("Recovery");
+                onEnter(new Wait());
+            }
+
+            private class Wait extends Action {
+                @Override
+                public void run() {
+                    setStateTimeout(Event.Timeout.ID, 2000);
                 }
             }
         }

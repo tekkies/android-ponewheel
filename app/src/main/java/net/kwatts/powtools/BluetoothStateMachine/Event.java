@@ -33,5 +33,9 @@ public class Event {
     public class OutkeyWritten {
         public static final String ID = "Outkey Written";
     }
+
+    public class Timeout {
+        public static final String ID = "Timeout";
+    }
 }
 
