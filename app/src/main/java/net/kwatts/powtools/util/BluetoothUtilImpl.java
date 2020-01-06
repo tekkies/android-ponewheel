@@ -966,6 +966,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                     mOWDevice.processUUID(bluetoothGattCharacteristic);
                     mOWDevice.setBatteryRemaining(mainActivity);
+                    handleStateMachineEvent(Event.ReveivedData.ID);
                 }
 
 
@@ -1012,16 +1013,15 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             private GetInkeyState getInkeyState;
             private ConnectingState connectingState;
             private DiscoveringServicesState discoveringServicesState;
-            private ServicesDiscoveredState servicesDiscoveredState;
             private GetOutkeyV3State getOutKeyV3State;
             private GetOutkeyV2State getOutKeyV2State;
             private SendingOutkeyState sendingOutkeyState;
+            public ShowTimeState showTimeState;
 
             public State build() {
 
                 connectingState = new ConnectingState();
                 discoveringServicesState = new DiscoveringServicesState();
-                servicesDiscoveredState = new ServicesDiscoveredState();
                 State readingFirmawareState = new ReadingFirmwareState();
                 getInkeyState = new GetInkeyState();
                 getOutKeyV2State = new GetOutkeyV2State();
@@ -1030,6 +1030,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 State gattConnectFailed = new State("TODO Gatt connect failed");
                 State notOnewheel = new State("TODO Not Onewheel");
+                State connectionLost = new State("Connection lost");
 
                 discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheel, TransitionKind.External);
                 discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
@@ -1038,7 +1039,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
                 connectingState.addHandler(TODO_GATT_CONNECT_FAIL, gattConnectFailed, TransitionKind.External);
 
-                ShowTimeState showTimeState = new ShowTimeState();
+                showTimeState = new ShowTimeState();
                 readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
                 readingFirmawareState.addHandler(Event.GeminiFirmware.ID, getInkeyState, TransitionKind.External);
 
@@ -1050,10 +1051,12 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 sendingOutkeyState.addHandler(Event.OutkeyWritten.ID, showTimeState, TransitionKind.External);
 
+                showTimeState.addHandler(Event.ReveivedData.ID, showTimeState, TransitionKind.Internal, new OnReceivedData());
+                showTimeState.addHandler(Event.Timeout.ID, connectionLost, TransitionKind.External);
+
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
                         connectingState,
                         discoveringServicesState,
-                        servicesDiscoveredState,
                         readingFirmawareState,
                         showTimeState,
                         getInkeyState,
@@ -1062,7 +1065,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         sendingOutkeyState,
 
                         gattConnectFailed,
-                        notOnewheel);
+                        notOnewheel,
+                        connectionLost);
 
 
                 connectingState.inject(discoverSericesState.bluetoothGattCallback);
@@ -1108,12 +1112,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 }
             }
 
-            private class ServicesDiscoveredState extends State {
-                public ServicesDiscoveredState() {
-                    super("Sevices Discovered");
-                }
-            }
-
             private void discoverGattServices(Map<String, Object> mPayload1) {
                 BluetoothGatt gatt = (BluetoothGatt) mPayload1.get(BluetoothGatt.class.getSimpleName());
                 gatt.discoverServices();
@@ -1138,9 +1136,16 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             }
 
             private class ShowTimeState extends State {
+
+                public static final int TIMEOUT = 5000;
+
                 public ShowTimeState() {
                     super("Showtime");
                     onEnter(new OnEnter());
+                }
+
+                public void OnReceivedData() {
+                    setStateTimeout(Event.Timeout.ID, TIMEOUT);
                 }
 
                 private class OnEnter extends Action {
@@ -1148,6 +1153,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     public void run() {
                         BluetoothUtil bluetoothUtil = getBluetoothUtil();
                         bluetoothUtil.whenActuallyConnected();
+                        setStateTimeout(Event.Timeout.ID, TIMEOUT);
                     }
                 }
             }
@@ -1274,6 +1280,14 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         gatt.setCharacteristicNotification(CharacteristicUartSerialRead, false);
                     }
 
+                }
+            }
+
+            private class OnReceivedData extends Action {
+
+                @Override
+                public void run() {
+                    showTimeState.OnReceivedData();
                 }
             }
         }

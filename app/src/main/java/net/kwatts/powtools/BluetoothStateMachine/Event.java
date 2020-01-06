@@ -37,5 +37,9 @@ public class Event {
     public class Timeout {
         public static final String ID = "Timeout";
     }
+
+    public class ReveivedData {
+        public static final String ID = "Received Data";
+    }
 }
 

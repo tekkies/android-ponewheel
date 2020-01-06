@@ -7,8 +7,6 @@ state "Connection Enabled" as Connection_Enabled  {
             state "Discovering Services" as Discovering_Services  {
 Discovering_Services : Enter: DiscoverServices
             }
-            state "Sevices Discovered" as Sevices_Discovered  {
-            }
             state "Reading Firmware" as Reading_Firmware  {
 Reading_Firmware : Enter: ReadFirmware
             }
@@ -31,9 +29,14 @@ Sending_Outkey : Enter: SendOutkey
             }
             state "TODO Not Onewheel" as TODO_Not_Onewheel  {
             }
+            state "Connection lost" as Connection_lost  {
+            }
             state "Connecting" as Connecting  {
 Connecting : Enter: TryToConnect
             }
+        }
+        state "Recovery" as Recovery  {
+Recovery : Enter: Wait
         }
         state "TBC" as TBC  {
         }
@@ -52,6 +55,8 @@ Discovering_Services --> TODO_Not_Onewheel : ToDo_Not_Onewheel
 Discovering_Services --> Reading_Firmware : Read_Firmware
 Reading_Firmware --> Showtime : Gen_1_Firmware
 Reading_Firmware --> Get_Inkey : Gemini_Firmware
+Showtime --> Showtime : Received_Data
+Showtime --> Connection_lost : Timeout
 Get_Inkey --> Get_Inkey : Serial_Read
 Get_Inkey --> Get_V2_Outkey : Inkey_Found_(V2)
 Get_Inkey --> Get_V3_Outkey : Inkey_Found_(V3)
@@ -61,7 +66,8 @@ Sending_Outkey --> Showtime : Outkey_Written
 Connecting --> Discovering_Services : Gatt_Connected
 Connecting --> TODO_Gatt_connect_failed : Todo_Gatt_Connect_Fail
 Discover_Services --> TBC : TBC
-Scanning --> Discover_Services : Onewheel_found
+Recovery --> Scanning : Timeout
+Scanning --> Discover_Services : Device_found
 Adapter_Enabled --> Adapter_Disabled : Adapter_Disabled
 Init --> Adapter_Enabled : Adapter_Enabled
 Init --> Adapter_Disabled : Adapter_Disabled
