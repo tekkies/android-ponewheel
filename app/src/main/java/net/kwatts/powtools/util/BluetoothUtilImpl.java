@@ -33,7 +33,6 @@ import net.kwatts.powtools.BluetoothStateMachine;
 import net.kwatts.powtools.DisabledState;
 import net.kwatts.powtools.Event;
 import net.kwatts.powtools.PayloadUtil;
-import net.kwatts.powtools.BuildConfig;
 import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
@@ -50,7 +49,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -123,7 +121,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         bluetoothStateMachine = new BluetoothStateMachine();
 
-        connectionEnabledStateMachineBuilder = new ConnectionEnabledStateMachineBuilder(this, bluetoothStateMachine);
+        connectionEnabledStateMachineBuilder = new ConnectionEnabledStateMachineBuilder(bluetoothStateMachine);
         stateMachine = connectionEnabledStateMachineBuilder.build();
 
         String cacheDir = mainActivity.getCacheDir().getAbsolutePath() + File.separator + "stateDiagram";
@@ -374,7 +372,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     @Override
     public void stopScanning() {
-        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.DISABLE_CONNECTION);
+        handleStateMachineEvent(bluetoothStateMachine.events.DISABLE_CONNECTION);
         //AJWOZ scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
@@ -403,14 +401,14 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     @Override
     public void startScanning() {
-        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.ENABLE_CONNECTION);
+        handleStateMachineEvent(bluetoothStateMachine.events.ENABLE_CONNECTION);
         mainActivity.invalidateOptionsMenu();
     }
 
 
     @Override
     public void disconnect() {
-        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.DISABLE_CONNECTION);
+        handleStateMachineEvent(bluetoothStateMachine.events.DISABLE_CONNECTION);
         //AJWOZ scanLeDevice(false);
         if (mGatt != null) {
             mGatt.disconnect();
@@ -534,26 +532,23 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     private class ConnectionEnabledStateMachineBuilder {
 
-        public static final String ENABLE_CONNECTION = "Enable connection";
-        public static final String DISABLE_CONNECTION = "Disable connection";
 
         private BluetoothStateMachine bluetoothStateMachine;
 
 
-        public ConnectionEnabledStateMachineBuilder(BluetoothUtilImpl bluetoothUtil, BluetoothStateMachine bluetoothStateMachine) {
+        public ConnectionEnabledStateMachineBuilder(BluetoothStateMachine bluetoothStateMachine) {
 
             this.bluetoothStateMachine = bluetoothStateMachine;
         }
 
         private StateMachine build() {
-
             BluetoothStateMachine.States states = bluetoothStateMachine.states;
+            BluetoothStateMachine.Events events = bluetoothStateMachine.events;
             states.disabled = new DisabledState();
-
             states.enabled = new AdapterEnabledStateMachineBuilder().build();
 
-            states.disabled.addHandler(ENABLE_CONNECTION, states.enabled, TransitionKind.External);
-            states.enabled.addHandler(DISABLE_CONNECTION, states.disabled, TransitionKind.External);
+            states.disabled.addHandler(events.ENABLE_CONNECTION, states.enabled, TransitionKind.External);
+            states.enabled.addHandler(events.DISABLE_CONNECTION, states.disabled, TransitionKind.External);
 
             StateMachine stateMachine = new StateMachine(states.disabled, states.enabled);
             stateMachine.init();

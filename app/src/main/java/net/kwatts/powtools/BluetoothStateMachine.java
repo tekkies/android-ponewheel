@@ -20,7 +20,8 @@ public class  BluetoothStateMachine {
     }
 
     public class Events {
-
+        public static final String ENABLE_CONNECTION = "Enable Connection";
+        public static final String DISABLE_CONNECTION = "Disable connection";
     }
 }
 
