@@ -104,6 +104,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     private ConnectionEnabledStateMachineBuilder connectionEnabledStateMachineBuilder;
     private StateAnnouncer stateAnnouncer;
     private Runnable timeoutEventRunnable;
+    private File ponewheelDirectory;
 
     //TODO: decouple this crap from the UI/MainActivity
     @Override
@@ -145,12 +146,10 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     }
 
     private void saveDiagramToSdCard() {
-
-
+        File sdFolder = prepareStorageFolder();
         List<State> allActiveStates = stateMachine.getAllActiveStates();
         State currentState = allActiveStates.get(allActiveStates.size() - 1);
         String sourcePath = diagramCache.getDiagramFilePath(currentState);
-        File sdFolder = Environment.getExternalStorageDirectory();
         String pngFile = sdFolder + File.separator + "ponewheel-state.png";
         try {
             FileInputStream inStream = new FileInputStream(sourcePath);
@@ -186,6 +185,15 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 e.printStackTrace();
             }
         }
+    }
+
+    private File prepareStorageFolder() {
+        File externalStorageDirectory = Environment.getExternalStorageDirectory();
+        ponewheelDirectory = new File(externalStorageDirectory.toString() + File.separator + "ponewheel");
+        if(!ponewheelDirectory.exists()){
+            ponewheelDirectory.mkdirs();
+        }
+        return ponewheelDirectory;
     }
 
     private void updateStateDiagram() {
