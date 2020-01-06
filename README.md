@@ -41,34 +41,14 @@ We'd love for you to test the open beta! Sign up at [Google Play Beta]. For ques
 [Google Play]: https://play.google.com/store/apps/details?id=net.kwatts.powtools
 [Google Play Beta]: https://play.google.com/apps/testing/net.kwatts.powtools
 
-> This fork
+# This fork
 
 Try to manage comms with a hierarchical state machine
 
-e.g.
+## Screen Recording
 
-![State digram](doc/screenshot.png)
+ ![Live demo](doc/screen-recording.gif)
 
-Diagram
+## Detailed Screenshot 
 
-![State digram](doc/ponewheel-state.png)
-
-
-
-> Progress
-
-First state machine
-
-![](doc/progress-001.png)
-
-Animated state machine
-
-![](doc/progress-010.png)
-
-Enter actions showing
-
-![](doc/progress-011.png)
-
-Discovering services 
-
-![](doc/progress-012.png)
+![Screenshot](doc/screenshot.png)

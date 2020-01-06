@@ -129,9 +129,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         updateStateDiagram();
         Timber.i("Initial state: %s", stateMachine.getAllActiveStates());
 
-        //final BluetoothManager manager = (BluetoothManager) mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
-        //assert manager != null;
-        //mBluetoothAdapter = manager.getAdapter();
         mOWDevice.bluetoothLe.set("On");
 
         handler = new Handler(Looper.getMainLooper());
