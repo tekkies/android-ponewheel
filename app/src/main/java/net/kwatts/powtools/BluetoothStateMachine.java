@@ -1,9 +1,13 @@
 package net.kwatts.powtools;
 
+import net.kwatts.powtools.util.BluetoothUtilImpl;
+
+import de.artcom.hsm.State;
+
 public class  BluetoothStateMachine {
 
-    private final States states;
-    private final Events events;
+    public final States states;
+    public final Events events;
 
     public BluetoothStateMachine() {
         states = new States();
@@ -11,10 +15,11 @@ public class  BluetoothStateMachine {
     }
 
     public class States {
-
+        public DisabledState disabled;
     }
 
     public class Events {
 
     }
 }
+

@@ -30,6 +30,7 @@ import com.google.common.base.Stopwatch;
 
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.BluetoothStateMachine;
+import net.kwatts.powtools.DisabledState;
 import net.kwatts.powtools.Event;
 import net.kwatts.powtools.PayloadUtil;
 import net.kwatts.powtools.BuildConfig;
@@ -122,7 +123,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         bluetoothStateMachine = new BluetoothStateMachine();
 
-        connectionEnabledStateMachineBuilder = new ConnectionEnabledStateMachineBuilder(this);
+        connectionEnabledStateMachineBuilder = new ConnectionEnabledStateMachineBuilder(this, bluetoothStateMachine);
         stateMachine = connectionEnabledStateMachineBuilder.build();
 
         String cacheDir = mainActivity.getCacheDir().getAbsolutePath() + File.separator + "stateDiagram";
@@ -537,39 +538,30 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         public static final String DISABLE_CONNECTION = "Disable connection";
 
         public State enabled;
-        public DisabledState disabled;
+        private BluetoothStateMachine bluetoothStateMachine;
 
 
-        public ConnectionEnabledStateMachineBuilder(BluetoothUtilImpl bluetoothUtil) {
+        public ConnectionEnabledStateMachineBuilder(BluetoothUtilImpl bluetoothUtil, BluetoothStateMachine bluetoothStateMachine) {
 
+            this.bluetoothStateMachine = bluetoothStateMachine;
         }
 
         private StateMachine build() {
 
-
-
-            disabled = new DisabledState();
+            bluetoothStateMachine.states.disabled = new DisabledState();
 
 
             enabled = new AdapterEnabledStateMachineBuilder().build();
 
-            disabled.addHandler(ENABLE_CONNECTION, enabled, TransitionKind.External);
-            enabled.addHandler(DISABLE_CONNECTION, disabled, TransitionKind.External);
+            bluetoothStateMachine.states.disabled.addHandler(ENABLE_CONNECTION, enabled, TransitionKind.External);
+            enabled.addHandler(DISABLE_CONNECTION, bluetoothStateMachine.states.disabled, TransitionKind.External);
 
-            StateMachine stateMachine = new StateMachine(disabled, enabled);
+            StateMachine stateMachine = new StateMachine(bluetoothStateMachine.states.disabled, enabled);
             stateMachine.init();
             return stateMachine;
         }
 
 
-        private class DisabledState extends State {
-            public static final String ID = "Connection Disabled";
-
-            public DisabledState() {
-                super(ID);
-            }
-
-        }
 
         private class ConnectionEnabledState extends Sub {
             public static final String ID = "Connection Enabled";
