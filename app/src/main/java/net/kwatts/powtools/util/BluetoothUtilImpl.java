@@ -546,6 +546,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         private StateMachine build() {
 
+
+
             disabled = new DisabledState();
 
 
