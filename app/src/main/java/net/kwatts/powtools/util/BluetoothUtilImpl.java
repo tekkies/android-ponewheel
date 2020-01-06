@@ -29,14 +29,14 @@ import android.databinding.ObservableField;
 import com.google.common.base.Stopwatch;
 
 import net.kwatts.powtools.App;
-import net.kwatts.powtools.BluetoothStateMachine.Event;
-import net.kwatts.powtools.BluetoothStateMachine.PayloadUtil;
+import net.kwatts.powtools.Event;
+import net.kwatts.powtools.PayloadUtil;
 import net.kwatts.powtools.BuildConfig;
 import net.kwatts.powtools.MainActivity;
 import net.kwatts.powtools.model.IUnlocker;
 import net.kwatts.powtools.model.OWDevice;
 import net.kwatts.powtools.model.Session;
-import net.kwatts.powtools.BluetoothStateMachine.Event.InkeyFoundV2;
+import net.kwatts.powtools.Event.InkeyFoundV2;
 import net.kwatts.powtools.model.V3Unlocker;
 
 import org.jetbrains.annotations.NotNull;

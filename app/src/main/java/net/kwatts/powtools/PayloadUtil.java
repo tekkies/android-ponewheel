@@ -1,4 +1,4 @@
-package net.kwatts.powtools.BluetoothStateMachine;
+package net.kwatts.powtools;
 
 import java.util.HashMap;
 import java.util.Map;

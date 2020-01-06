@@ -1,4 +1,4 @@
-package net.kwatts.powtools.BluetoothStateMachine;
+package net.kwatts.powtools;
 
 import net.kwatts.powtools.util.InkeyCollator;
 
@@ -40,6 +40,7 @@ public class Event {
 
     public class ReveivedData {
         public static final String ID = "Received Data";
+
     }
 }
 
