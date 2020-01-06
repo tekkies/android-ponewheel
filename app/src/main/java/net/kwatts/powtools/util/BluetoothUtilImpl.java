@@ -529,7 +529,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     @Override
     public boolean isConectionEnabled() {
-        return stateMachine.getAllActiveStates().contains(connectionEnabledStateMachineBuilder.enabled);
+        return stateMachine.getAllActiveStates().contains(bluetoothStateMachine.states.enabled);
     }
 
     private class ConnectionEnabledStateMachineBuilder {
@@ -537,7 +537,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         public static final String ENABLE_CONNECTION = "Enable connection";
         public static final String DISABLE_CONNECTION = "Disable connection";
 
-        public State enabled;
         private BluetoothStateMachine bluetoothStateMachine;
 
 
@@ -548,15 +547,15 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         private StateMachine build() {
 
-            bluetoothStateMachine.states.disabled = new DisabledState();
+            BluetoothStateMachine.States states = bluetoothStateMachine.states;
+            states.disabled = new DisabledState();
 
+            states.enabled = new AdapterEnabledStateMachineBuilder().build();
 
-            enabled = new AdapterEnabledStateMachineBuilder().build();
+            states.disabled.addHandler(ENABLE_CONNECTION, states.enabled, TransitionKind.External);
+            states.enabled.addHandler(DISABLE_CONNECTION, states.disabled, TransitionKind.External);
 
-            bluetoothStateMachine.states.disabled.addHandler(ENABLE_CONNECTION, enabled, TransitionKind.External);
-            enabled.addHandler(DISABLE_CONNECTION, bluetoothStateMachine.states.disabled, TransitionKind.External);
-
-            StateMachine stateMachine = new StateMachine(bluetoothStateMachine.states.disabled, enabled);
+            StateMachine stateMachine = new StateMachine(states.disabled, states.enabled);
             stateMachine.init();
             return stateMachine;
         }

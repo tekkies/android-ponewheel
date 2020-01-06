@@ -16,6 +16,7 @@ public class  BluetoothStateMachine {
 
     public class States {
         public DisabledState disabled;
+        public State enabled;
     }
 
     public class Events {
