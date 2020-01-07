@@ -532,9 +532,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
     private class ConnectionEnabledStateMachineBuilder {
 
-
         private BluetoothStateMachine bluetoothStateMachine;
-
 
         public ConnectionEnabledStateMachineBuilder(BluetoothStateMachine bluetoothStateMachine) {
 
@@ -554,8 +552,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             stateMachine.init();
             return stateMachine;
         }
-
-
 
         private class ConnectionEnabledState extends Sub {
             public static final String ID = "Connection Enabled";
