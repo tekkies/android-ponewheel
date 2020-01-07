@@ -185,4 +185,8 @@ public class Util {
         //Or the two combined, but a bit slower:
         //return val - (val < 58 ? 48 : (val < 97 ? 55 : 87));
     }
+
+    public static String coalesce(String p1, String p2) {
+        return p1 != null ? p1 : p2;
+    }
 }
