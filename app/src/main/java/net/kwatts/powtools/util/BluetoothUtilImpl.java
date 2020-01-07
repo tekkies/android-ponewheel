@@ -30,7 +30,7 @@ import com.google.common.base.Stopwatch;
 
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.connection.BluetoothStateMachine;
-import net.kwatts.powtools.DisabledState;
+import net.kwatts.powtools.connection.states.DisabledState;
 import net.kwatts.powtools.Event;
 import net.kwatts.powtools.PayloadUtil;
 import net.kwatts.powtools.MainActivity;
@@ -809,9 +809,18 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
 
-                        handleStateMachineEvent(DiscoverSericesStateBuilder.TODO_GATT_CONNECT_FAIL);
 
 
+                        switch(status) {
+                            case BluetoothGatt.GATT_CONNECTION_CONGESTED:
+                                handleStateMachineEvent(bluetoothStateMachine.events.GATT_CONGESTED_ERROR);
+                                break;
+
+                            default:
+                                handleStateMachineEvent(bluetoothStateMachine.events.GATT_CONNECT_OTHER_ERROR);
+                                break;
+
+                        }
                         /* AJWOZ
                         isUnlocked = 0;
                         BluetoothUtilImpl.isOWFound.set("false");
@@ -1002,7 +1011,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         public class DiscoverSericesStateBuilder {
 
             public static final String GATT_CONNECTED = "Gatt Connected";
-            public static final String TODO_GATT_CONNECT_FAIL = "Todo Gatt Connect Fail";
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
             public static final String READ_FIRMWARE_REVISION = "Read Firmware";
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
@@ -1016,6 +1024,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public ShowTimeState showTimeState;
 
             public State build() {
+                BluetoothStateMachine.States states = bluetoothStateMachine.states;
+                BluetoothStateMachine.Events events = bluetoothStateMachine.events;
 
                 connectingState = new ConnectingState();
                 discoveringServicesState = new DiscoveringServicesState();
@@ -1025,16 +1035,17 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 getOutKeyV3State = new GetOutkeyV3State();
                 sendingOutkeyState = new SendingOutkeyState();
 
-                State gattConnectFailed = new State("TODO Gatt connect failed");
-                State notOnewheel = new State("TODO Not Onewheel");
+                State gattConnectOtherFail = new State("GATT connect other fail");
+                State notOnewheelFail = new State("Not Onewheel Fail");
                 State connectionLost = new State("Connection lost");
+                bluetoothStateMachine.states.gattCongestedState = new State("GATT Congested");
 
-                discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheel, TransitionKind.External);
+                discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheelFail, TransitionKind.External);
                 discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
 
-
                 connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
-                connectingState.addHandler(TODO_GATT_CONNECT_FAIL, gattConnectFailed, TransitionKind.External);
+                connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, gattConnectOtherFail, TransitionKind.External);
+                connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
 
                 showTimeState = new ShowTimeState();
                 readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
@@ -1061,8 +1072,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         getOutKeyV3State,
                         sendingOutkeyState,
 
-                        gattConnectFailed,
-                        notOnewheel,
+                        gattConnectOtherFail,
+                        bluetoothStateMachine.states.gattCongestedState,
+                        notOnewheelFail,
                         connectionLost);
 
 
@@ -1134,7 +1146,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             private class ShowTimeState extends State {
 
-                public static final int TIMEOUT = 5000;
+                public static final int TIMEOUT = 20000;
 
                 public ShowTimeState() {
                     super("Showtime");

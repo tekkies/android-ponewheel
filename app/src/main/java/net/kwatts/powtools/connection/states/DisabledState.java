@@ -1,4 +1,4 @@
-package net.kwatts.powtools;
+package net.kwatts.powtools.connection.states;
 
 import de.artcom.hsm.State;
 
