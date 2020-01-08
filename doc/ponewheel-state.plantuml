@@ -4,8 +4,8 @@ state "Connection Enabled" as Connection_Enabled  {
     }
     state "Adapter Enabled" as Adapter_Enabled  {
         state "Discover Services" as Discover_Services  {
-            state "Discovering Services" as Discovering_Services  {
-Discovering_Services : Enter: DiscoverServices
+            state "Connected" as Connected  {
+Connected : Enter: DiscoverServices
             }
             state "Reading Firmware" as Reading_Firmware  {
 Reading_Firmware : Enter: ReadFirmware
@@ -53,8 +53,8 @@ Connection_Enabled : Enter: ListenForBluetoothToggle\nExit: StopListeningForBlue
 state "Connection Disabled" as Connection_Disabled  {
 }
 Adapter_Disabled --> Adapter_Enabled : Enable_Adapter
-Discovering_Services --> Not_Onewheel_Fail : ToDo_Not_Onewheel
-Discovering_Services --> Reading_Firmware : Read_Firmware
+Connected --> Not_Onewheel_Fail : ToDo_Not_Onewheel
+Connected --> Reading_Firmware : Read_Firmware
 Reading_Firmware --> Showtime : Gen_1_Firmware
 Reading_Firmware --> Get_Inkey : Gemini_Firmware
 Showtime --> Showtime : Received_Data
@@ -65,7 +65,7 @@ Get_Inkey --> Get_V3_Outkey : Inkey_Found_(V3)
 Get_V2_Outkey --> Sending_Outkey : Got_Outkey
 Get_V3_Outkey --> Sending_Outkey : Got_Outkey
 Sending_Outkey --> Showtime : Outkey_Written
-Connecting --> Discovering_Services : Gatt_Connected
+Connecting --> Connected : Gatt_Connected
 Connecting --> GATT_connect_other_fail : Gatt_Connect_Other_Error
 Connecting --> GATT_Congested : GATT_Congested_Error
 Discover_Services --> TBC : TBC

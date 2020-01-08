@@ -9,10 +9,8 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanResult;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -25,6 +23,7 @@ import com.google.common.base.Stopwatch;
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.connection.AdapterDisabledState;
 import net.kwatts.powtools.connection.BluetoothStateMachine;
+import net.kwatts.powtools.connection.states.ConnectingState;
 import net.kwatts.powtools.connection.states.ConnectionEnabledState;
 import net.kwatts.powtools.connection.states.DisabledState;
 import net.kwatts.powtools.Event;
@@ -839,8 +838,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
             public static final String SERIAL_READ = "Serial Read";
             private GetInkeyState getInkeyState;
-            private ConnectingState connectingState;
-            private DiscoveringServicesState discoveringServicesState;
+            private ConnectedState discoveringServicesState;
             private GetOutkeyV3State getOutKeyV3State;
             private GetOutkeyV2State getOutKeyV2State;
             private SendingOutkeyState sendingOutkeyState;
@@ -850,8 +848,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 BluetoothStateMachine.States states = bluetoothStateMachine.states;
                 BluetoothStateMachine.Events events = bluetoothStateMachine.events;
 
-                connectingState = new ConnectingState();
-                discoveringServicesState = new DiscoveringServicesState();
+                states.connectingState = new ConnectingState(bluetoothStateMachine);
+                discoveringServicesState = new ConnectedState();
                 State readingFirmawareState = new ReadingFirmwareState();
                 getInkeyState = new GetInkeyState();
                 getOutKeyV2State = new GetOutkeyV2State();
@@ -866,9 +864,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheelFail, TransitionKind.External);
                 discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
 
-                connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
-                connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, gattConnectOtherFail, TransitionKind.External);
-                connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
+                states.connectingState.addHandler(GATT_CONNECTED, discoveringServicesState, TransitionKind.External);
+                states.connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, gattConnectOtherFail, TransitionKind.External);
+                states.connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
 
                 showTimeState = new ShowTimeState();
                 readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
@@ -886,7 +884,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 showTimeState.addHandler(Event.Timeout.ID, connectionLost, TransitionKind.External);
 
                 DiscoverSericesState discoverSericesState = new DiscoverSericesState(
-                        connectingState,
+                        states.connectingState,
                         discoveringServicesState,
                         readingFirmawareState,
                         showTimeState,
@@ -901,39 +899,15 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         connectionLost);
 
 
-                connectingState.inject(discoverSericesState.bluetoothGattCallback);
+                states.connectingState.inject(discoverSericesState.bluetoothGattCallback);
                 return discoverSericesState;
             }
 
-            private class ConnectingState extends State {
-                private BluetoothGattCallback bluetoothGattCallback;
-
-                public ConnectingState() {
-                    super("Connecting");
-                    onEnter(new TryToConnect());
-                }
-
-                public void inject(BluetoothGattCallback bluetoothGattCallback) {
-
-                    this.bluetoothGattCallback = bluetoothGattCallback;
-                }
 
 
-                private class TryToConnect extends Action {
-                    @Override
-                    public void run() {
-                        ScanResult result = (ScanResult) mPayload.get(ScanResult.class.getSimpleName());
-                        BluetoothDevice device = result.getDevice();
-                        Timber.d("Address: %s, Name: %s", Util.coalesce(device.getAddress(), "NULL"), Util.coalesce(device.getName(), "NULL"));
-                        device.connectGatt(mainActivity, false, bluetoothGattCallback);
-                    }
-                }
-            }
-
-
-            private class DiscoveringServicesState extends State {
-                public DiscoveringServicesState() {
-                    super("Discovering Services");
+            private class ConnectedState extends State {
+                public ConnectedState() {
+                    super("Connected");
                     onEnter(new DiscoverServices());
                 }
 

@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 
 import net.kwatts.powtools.PayloadUtil;
+import net.kwatts.powtools.connection.states.ConnectingState;
 import net.kwatts.powtools.connection.states.DisabledState;
 import net.kwatts.powtools.util.BluetoothUtilImpl;
 
@@ -38,6 +39,7 @@ public class  BluetoothStateMachine {
         public DisabledState disabled;
         public State enabled;
         public State gattCongestedState;
+        public ConnectingState connectingState;
     }
 
     public class Events {
