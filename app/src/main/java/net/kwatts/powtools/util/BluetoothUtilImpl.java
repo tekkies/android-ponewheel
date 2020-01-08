@@ -625,7 +625,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Timber.d("STATE_CONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
                         BluetoothUtilImpl.isOWFound.set("true");
-                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECTED, new PayloadUtil().add(gatt).build());
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECTS, new PayloadUtil().add(gatt).build());
                         Battery.initStateTwoX(App.INSTANCE.getSharedPreferences());
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
@@ -830,13 +830,13 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         public class DiscoverSericesStateBuilder {
 
-            public static final String GATT_CONNECTED = "Gatt Connected";
+            public static final String GATT_CONNECTS = "Gatt Connects";
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
             public static final String READ_FIRMWARE_REVISION = "Read Firmware";
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
             public static final String SERIAL_READ = "Serial Read";
             private GetInkeyState getInkeyState;
-            private ConnectedState connectedState;
+            private DiscoveringServicesState connectedState;
             private GetOutkeyV3State getOutKeyV3State;
             private GetOutkeyV2State getOutKeyV2State;
             private SendingOutkeyState sendingOutkeyState;
@@ -847,7 +847,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 BluetoothStateMachine.Events events = bluetoothStateMachine.events;
 
                 states.connectingState = new ConnectingState(bluetoothStateMachine);
-                connectedState = new ConnectedState();
+                connectedState = new DiscoveringServicesState();
                 State readingFirmawareState = new ReadingFirmwareState();
                 getInkeyState = new GetInkeyState();
                 getOutKeyV2State = new GetOutkeyV2State();
@@ -862,7 +862,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 connectedState.addHandler(TODO_NOT_ONEWHEEL, notOnewheelFail, TransitionKind.External);
                 connectedState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
 
-                states.connectingState.addHandler(GATT_CONNECTED, connectedState, TransitionKind.External);
+                states.connectingState.addHandler(GATT_CONNECTS, connectedState, TransitionKind.External);
                 states.connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, gattConnectOtherFail, TransitionKind.External);
                 states.connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
 
@@ -903,9 +903,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
 
 
-            private class ConnectedState extends State {
-                public ConnectedState() {
-                    super("Connected");
+            private class DiscoveringServicesState extends State {
+                public DiscoveringServicesState() {
+                    super("Discovering Services");
                     onEnter(new DiscoverServices());
                 }
 
