@@ -7,19 +7,13 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
-import android.bluetooth.le.ScanSettings;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Environment;
-import android.os.ParcelUuid;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
@@ -29,6 +23,7 @@ import android.databinding.ObservableField;
 import com.google.common.base.Stopwatch;
 
 import net.kwatts.powtools.App;
+import net.kwatts.powtools.connection.AdapterDisabledState;
 import net.kwatts.powtools.connection.BluetoothStateMachine;
 import net.kwatts.powtools.connection.states.DisabledState;
 import net.kwatts.powtools.Event;
@@ -41,15 +36,12 @@ import net.kwatts.powtools.model.Session;
 import net.kwatts.powtools.Event.InkeyFoundV2;
 import net.kwatts.powtools.model.V3Unlocker;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -566,7 +558,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     if (bluetoothStateMachine.getBluetoothAdapter().enable()) {
                         handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
                     } else {
-                        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
+                        handleStateMachineEvent(bluetoothStateMachine.events.DISABLE_ADAPTER);
                     }
                 }
             }
@@ -582,7 +574,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                                     BluetoothAdapter.ERROR);
                             switch (state) {
                                 case BluetoothAdapter.STATE_OFF:
-                                    handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_DISABLED);
+                                    handleStateMachineEvent(bluetoothStateMachine.events.DISABLE_ADAPTER);
                                     break;
                                 case BluetoothAdapter.STATE_TURNING_OFF:
                                     //setButtonText("Turning Bluetooth off...");
@@ -604,25 +596,24 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         private class AdapterEnabledStateMachineBuilder {
 
-            public static final String ADAPTER_DISABLED = "Adapter Disabled";
             public static final String ADAPTER_ENABLED = "Adapter Enabled";
             public static final String TBC = "TBC";
 
             public State build() {
 
                 InitState init = new InitState();
-                State adapterDisabledState = new State(ADAPTER_DISABLED);
+                State adapterDisabledState = new AdapterDisabledState();
                 ConnectionStateMachine connectionStateMachine = new ConnectionStateMachine();
                 State adapterEnabledState = new Sub(ADAPTER_ENABLED, connectionStateMachine.createConnectionStateMachine());
 
-                adapterEnabledState.addHandler(ADAPTER_DISABLED, adapterDisabledState, TransitionKind.External);
+                adapterEnabledState.addHandler(bluetoothStateMachine.events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
 
                 adapterDisabledState.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
 
 
 
                 init.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
-                init.addHandler(ADAPTER_DISABLED, adapterDisabledState, TransitionKind.External);
+                init.addHandler(bluetoothStateMachine.events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
 
                 return new ConnectionEnabledState(new StateMachine(init, adapterDisabledState, adapterEnabledState));
             }

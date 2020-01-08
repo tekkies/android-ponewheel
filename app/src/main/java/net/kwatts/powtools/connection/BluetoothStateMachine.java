@@ -36,12 +36,12 @@ public class  BluetoothStateMachine {
     }
 
     public class Events {
+        public static final String DISABLE_ADAPTER = "Disable Adapter";
         public static final String ENABLE_CONNECTION = "Enable Connection";
         public static final String DISABLE_CONNECTION = "Disable connection";
         public static final String GATT_CONGESTED_ERROR = "GATT Congested Error";
         public static final String GATT_CONNECT_OTHER_ERROR = "Gatt Connect Other Error";
         public static final String ONEWHEEL_FOUND = "Device found";
-
     }
 
     public BluetoothAdapter getBluetoothAdapter() {
