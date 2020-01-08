@@ -601,10 +601,15 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             tbcState = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
             discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, tbcState, TransitionKind.External);
 
+            states.connectingState.addHandler(GATT_CONNECTS, discoveringServicesState, TransitionKind.External);
+            states.connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, gattConnectOtherFail, TransitionKind.External);
+            states.connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
 
-            recoveryState.addHandler(Event.Timeout.ID, scanningState, TransitionKind.External);
+
+            recoveryState.addHandler(Event.Timeout.ID, scanningState, states.connectingState, TransitionKind.External);
 
 
+            states.connectingState.inject(discoverSericesState.bluetoothGattCallback);
 
             return new StateMachine(scanningState, discoverServices, recoveryState, tbcState);
         }
@@ -862,9 +867,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheelFail, TransitionKind.External);
                 discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
 
-                states.connectingState.addHandler(GATT_CONNECTS, discoveringServicesState, TransitionKind.External);
-                states.connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, gattConnectOtherFail, TransitionKind.External);
-                states.connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
 
                 showTimeState = new ShowTimeState();
                 readingFirmawareState.addHandler(GEN_1_FIRMWARE, showTimeState, TransitionKind.External);
@@ -882,7 +884,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 showTimeState.addHandler(Event.Timeout.ID, connectionLost, TransitionKind.External);
 
                 ConnectedState discoverSericesState = new ConnectedState(
-                        states.connectingState,
                         discoveringServicesState,
                         readingFirmawareState,
                         showTimeState,
@@ -897,7 +898,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         connectionLost);
 
 
-                states.connectingState.inject(discoverSericesState.bluetoothGattCallback);
                 return discoverSericesState;
             }
 
