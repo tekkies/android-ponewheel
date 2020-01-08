@@ -52,7 +52,7 @@ Connection_Enabled : Enter: ListenForBluetoothToggle\nExit: StopListeningForBlue
 }
 state "Connection Disabled" as Connection_Disabled  {
 }
-Adapter_Disabled --> Adapter_Enabled : Adapter_Enabled
+Adapter_Disabled --> Adapter_Enabled : Enable_Adapter
 Discovering_Services --> Not_Onewheel_Fail : ToDo_Not_Onewheel
 Discovering_Services --> Reading_Firmware : Read_Firmware
 Reading_Firmware --> Showtime : Gen_1_Firmware
@@ -71,9 +71,9 @@ Connecting --> GATT_Congested : GATT_Congested_Error
 Discover_Services --> TBC : TBC
 Recovery --> Scanning : Timeout
 Scanning --> Discover_Services : Device_found
-Adapter_Enabled --> Adapter_Disabled : Adapter_Disabled
-Init --> Adapter_Enabled : Adapter_Enabled
-Init --> Adapter_Disabled : Adapter_Disabled
+Adapter_Enabled --> Adapter_Disabled : Disable_Adapter
+Init --> Adapter_Enabled : Enable_Adapter
+Init --> Adapter_Disabled : Disable_Adapter
 Connection_Enabled --> Connection_Disabled : Disable_connection
 Connection_Disabled --> Connection_Enabled : Enable_Connection
  
