@@ -610,10 +610,10 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
 
 
-        private class DiscoverSericesState extends Sub {
-            public static final String ID = "Discover Services";
+        private class ConnectedState extends Sub {
+            public static final String ID = "Connected";
 
-            public DiscoverSericesState(State initialState, State... states) {
+            public ConnectedState(State initialState, State... states) {
                 super(ID, initialState, states);
             }
 
@@ -881,7 +881,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 showTimeState.addHandler(Event.ReveivedData.ID, showTimeState, TransitionKind.Internal, new OnReceivedData());
                 showTimeState.addHandler(Event.Timeout.ID, connectionLost, TransitionKind.External);
 
-                DiscoverSericesState discoverSericesState = new DiscoverSericesState(
+                ConnectedState discoverSericesState = new ConnectedState(
                         states.connectingState,
                         connectedState,
                         readingFirmawareState,

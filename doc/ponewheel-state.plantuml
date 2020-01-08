@@ -3,7 +3,7 @@ state "Connection Enabled" as Connection_Enabled  {
     state "Adapter Disabled" as Adapter_Disabled  {
     }
     state "Adapter Enabled" as Adapter_Enabled  {
-        state "Discover Services" as Discover_Services  {
+        state "Connected" as Connected  {
             state "Discovering Services" as Discovering_Services  {
 Discovering_Services : Enter: DiscoverServices
             }
@@ -68,9 +68,9 @@ Sending_Outkey --> Showtime : Outkey_Written
 Connecting --> Discovering_Services : Gatt_Connects
 Connecting --> GATT_connect_other_fail : Gatt_Connect_Other_Error
 Connecting --> GATT_Congested : GATT_Congested_Error
-Discover_Services --> TBC : TBC
+Connected --> TBC : TBC
 Recovery --> Scanning : Timeout
-Scanning --> Discover_Services : Device_found
+Scanning --> Connected : Device_found
 Adapter_Enabled --> Adapter_Disabled : Disable_Adapter
 Init --> Adapter_Enabled : Enable_Adapter
 Init --> Adapter_Disabled : Disable_Adapter
