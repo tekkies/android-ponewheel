@@ -194,7 +194,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     }
 
     private void updateStateDiagram() {
-        mainActivity.updateStateMachine(diagramCache);
+        mainActivity.updateStateMachine(diagramCache, "event");
     }
 
     private String getPlanTextUrl(String plantUml) {
@@ -202,15 +202,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         Timber.i(url);
         return url;
     }
-
-
-    @NotNull
-    private HashMap<String, Object> newSimplePayload(Object result) {
-        HashMap<String, Object> payload = new HashMap<String, Object>(1);
-        payload.put(result.getClass().getSimpleName(), result);
-        return payload;
-    }
-
 
     public BluetoothUtil getInstance() {
         return this;
@@ -238,7 +229,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             stateAnnouncer.announce(activeState.getId());
         }
      }
-
 
     private State getActiveState() {
         State activeState = null;
@@ -710,7 +700,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Timber.d("STATE_CONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
                         BluetoothUtilImpl.isOWFound.set("true");
-                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECTED, newSimplePayload(gatt));
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECTED, new PayloadUtil().add(gatt).build());
                         Battery.initStateTwoX(App.INSTANCE.getSharedPreferences());
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
@@ -722,6 +712,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                             default:
                                 handleStateMachineEvent(bluetoothStateMachine.events.GATT_CONNECT_OTHER_ERROR);
+                                Toast.makeText(mContext, String.format("onConnectionStateChange(%04x, STATE_DISCONNECTED)", status), Toast.LENGTH_LONG).show();
                                 break;
 
                         }
@@ -796,7 +787,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                         if(firmwareVersion <= 4033)
                         {
-                            handleStateMachineEvent(DiscoverSericesStateBuilder.GEN_1_FIRMWARE, newSimplePayload(mainActivity.getBluetoothUtil()));
+                            handleStateMachineEvent(DiscoverSericesStateBuilder.GEN_1_FIRMWARE, new PayloadUtil().add(mainActivity.getBluetoothUtil()).build());
                         } else {
                             PayloadUtil payloadUtil = new PayloadUtil()
                                     .add(owGatService)
@@ -822,7 +813,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 @Override
                 public void onCharacteristicChanged(BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic bluetoothGattCharacteristic) {
                     if (isGemini() && (bluetoothGattCharacteristic.getUuid().toString().equals(OWDevice.OnewheelCharacteristicUartSerialRead))) {
-                        handleStateMachineEvent(DiscoverSericesStateBuilder.SERIAL_READ, newSimplePayload(bluetoothGattCharacteristic));
+                        handleStateMachineEvent(DiscoverSericesStateBuilder.SERIAL_READ, new PayloadUtil().add(bluetoothGattCharacteristic).build());
                         /*AJWOZ
                         try {
                             Timber.d("Setting up inkey!");

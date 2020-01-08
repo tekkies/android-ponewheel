@@ -30,6 +30,7 @@ import android.view.WindowManager;
 import android.widget.Chronometer;
 import android.widget.ImageView;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -724,8 +725,8 @@ public class MainActivity extends AppCompatActivity implements
     int frontBlinkCount = 0;
     int backBlinkCount = 0;
 
-    public void updateStateMachine(DiagramCache diagramCache) {
-
+    public void updateStateMachine(DiagramCache diagramCache, String message) {
+        ((TextView)findViewById(R.id.event)).setText(message);
         new DownloadImageTask((ImageView) findViewById(R.id.state_diagram)).execute(diagramCache);
     }
 
