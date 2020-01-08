@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 
+import net.kwatts.powtools.PayloadUtil;
 import net.kwatts.powtools.connection.states.DisabledState;
 import net.kwatts.powtools.util.BluetoothUtilImpl;
 
@@ -16,7 +17,7 @@ public class  BluetoothStateMachine {
     public final States states;
     public final Events events;
     private final BluetoothUtilImpl bluetoothUtil;
-    private Context context;
+    public Context context;
 
     public BluetoothStateMachine(Context context, BluetoothUtilImpl bluetoothUtil) {
         this.context = context;
@@ -29,6 +30,10 @@ public class  BluetoothStateMachine {
         bluetoothUtil.handleStateMachineEvent(onewheelFound, build);
     }
 
+    public void handleStateMachineEvent(String disableAdapter) {
+        handleStateMachineEvent(disableAdapter, new PayloadUtil().build());
+    }
+
     public class States {
         public DisabledState disabled;
         public State enabled;
@@ -37,6 +42,7 @@ public class  BluetoothStateMachine {
 
     public class Events {
         public static final String DISABLE_ADAPTER = "Disable Adapter";
+        public static final String ENABLE_ADAPTER = "Enable Adapter";
         public static final String ENABLE_CONNECTION = "Enable Connection";
         public static final String DISABLE_CONNECTION = "Disable connection";
         public static final String GATT_CONGESTED_ERROR = "GATT Congested Error";

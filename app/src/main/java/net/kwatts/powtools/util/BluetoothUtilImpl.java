@@ -25,6 +25,7 @@ import com.google.common.base.Stopwatch;
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.connection.AdapterDisabledState;
 import net.kwatts.powtools.connection.BluetoothStateMachine;
+import net.kwatts.powtools.connection.states.ConnectionEnabledState;
 import net.kwatts.powtools.connection.states.DisabledState;
 import net.kwatts.powtools.Event;
 import net.kwatts.powtools.PayloadUtil;
@@ -530,73 +531,9 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             return stateMachine;
         }
 
-        private class ConnectionEnabledState extends Sub {
-            public static final String ID = "Connection Enabled";
-
-            BroadcastReceiver receiver;
-
-            public ConnectionEnabledState(StateMachine bluetoothStateMachine) {
-                super(ID, bluetoothStateMachine);
-                onEnter(new ListenForBluetoothToggle());
-                onExit(new StopListeningForBluetoothToggle());
-            }
-
-            private class StopListeningForBluetoothToggle extends Action {
-                @Override
-                public void run() {
-                    mainActivity.unregisterReceiver(receiver);
-                }
-            }
-
-            private class ListenForBluetoothToggle extends Action {
-                @Override
-                public void run() {
-                    IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-                    receiver = setupAdapterListener();
-                    mainActivity.registerReceiver(receiver, filter);
-
-                    if (bluetoothStateMachine.getBluetoothAdapter().enable()) {
-                        handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
-                    } else {
-                        handleStateMachineEvent(bluetoothStateMachine.events.DISABLE_ADAPTER);
-                    }
-                }
-            }
-
-            private BroadcastReceiver setupAdapterListener() {
-                final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        final String action = intent.getAction();
-
-                        if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                            final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
-                                    BluetoothAdapter.ERROR);
-                            switch (state) {
-                                case BluetoothAdapter.STATE_OFF:
-                                    handleStateMachineEvent(bluetoothStateMachine.events.DISABLE_ADAPTER);
-                                    break;
-                                case BluetoothAdapter.STATE_TURNING_OFF:
-                                    //setButtonText("Turning Bluetooth off...");
-                                    break;
-                                case BluetoothAdapter.STATE_ON:
-                                    handleStateMachineEvent(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.ADAPTER_ENABLED);
-                                    break;
-                                case BluetoothAdapter.STATE_TURNING_ON:
-                                    //setButtonText("Turning Bluetooth on...");
-                                    break;
-                            }
-                        }
-                    }
-                };
-                return mReceiver;
-            }
-
-        }
 
         private class AdapterEnabledStateMachineBuilder {
 
-            public static final String ADAPTER_ENABLED = "Adapter Enabled";
             public static final String TBC = "TBC";
 
             public State build() {
@@ -604,18 +541,18 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 InitState init = new InitState();
                 State adapterDisabledState = new AdapterDisabledState();
                 ConnectionStateMachine connectionStateMachine = new ConnectionStateMachine();
-                State adapterEnabledState = new Sub(ADAPTER_ENABLED, connectionStateMachine.createConnectionStateMachine());
+                State adapterEnabledState = new Sub("Adapter Enabled", connectionStateMachine.createConnectionStateMachine());
 
                 adapterEnabledState.addHandler(bluetoothStateMachine.events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
 
-                adapterDisabledState.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
+                adapterDisabledState.addHandler(bluetoothStateMachine.events.ENABLE_ADAPTER, adapterEnabledState, TransitionKind.External);
 
 
 
-                init.addHandler(ADAPTER_ENABLED, adapterEnabledState, TransitionKind.External);
+                init.addHandler(bluetoothStateMachine.events.ENABLE_ADAPTER, adapterEnabledState, TransitionKind.External);
                 init.addHandler(bluetoothStateMachine.events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
 
-                return new ConnectionEnabledState(new StateMachine(init, adapterDisabledState, adapterEnabledState));
+                return new ConnectionEnabledState(bluetoothStateMachine, init, adapterDisabledState, adapterEnabledState);
             }
 
             private class InitState extends State {
