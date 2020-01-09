@@ -60,6 +60,7 @@ import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
 import static android.speech.tts.TextToSpeech.SUCCESS;
+import static net.kwatts.powtools.connection.BluetoothStateMachine.Events.GATT_CONNECTS;
 
 public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFilledCallback {
 
@@ -579,7 +580,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
     }
 
-    class ConnectionStateMachine {
+    public class ConnectionStateMachine {
 
 
         private ScanningState scanningState;
@@ -601,17 +602,14 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             tbcState = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
             discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, tbcState, TransitionKind.External);
 
-            states.connectingState.addHandler(GATT_CONNECTS, discoveringServicesState, TransitionKind.External);
-            states.connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, gattConnectOtherFail, TransitionKind.External);
+            states.connectingState.addHandler(GATT_CONNECTS, states.discoveringServicesState, TransitionKind.External);
+            states.connectingState.addHandler(events.GATT_CONNECT_OTHER_ERROR, states.gattConnectOtherFail, TransitionKind.External);
             states.connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
 
 
-            recoveryState.addHandler(Event.Timeout.ID, scanningState, states.connectingState, TransitionKind.External);
+            recoveryState.addHandler(Event.Timeout.ID, scanningState, TransitionKind.External);
 
-
-            states.connectingState.inject(discoverSericesState.bluetoothGattCallback);
-
-            return new StateMachine(scanningState, discoverServices, recoveryState, tbcState);
+            return new StateMachine(scanningState, discoverServices, states.connectingState, recoveryState, tbcState);
         }
 
 
@@ -630,7 +628,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Timber.d("STATE_CONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
                         BluetoothUtilImpl.isOWFound.set("true");
-                        handleStateMachineEvent(DiscoverSericesStateBuilder.GATT_CONNECTS, new PayloadUtil().add(gatt).build());
+                        handleStateMachineEvent(GATT_CONNECTS, new PayloadUtil().add(gatt).add(this).build());
                         Battery.initStateTwoX(App.INSTANCE.getSharedPreferences());
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Timber.d("STATE_DISCONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
@@ -835,13 +833,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
         public class DiscoverSericesStateBuilder {
 
-            public static final String GATT_CONNECTS = "Gatt Connects";
             public static final String TODO_NOT_ONEWHEEL = "ToDo Not Onewheel";
             public static final String READ_FIRMWARE_REVISION = "Read Firmware";
             public static final String GEN_1_FIRMWARE = "Gen 1 Firmware";
             public static final String SERIAL_READ = "Serial Read";
             private GetInkeyState getInkeyState;
-            private DiscoveringServicesState discoveringServicesState;
             private GetOutkeyV3State getOutKeyV3State;
             private GetOutkeyV2State getOutKeyV2State;
             private SendingOutkeyState sendingOutkeyState;
@@ -852,20 +848,20 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 BluetoothStateMachine.Events events = bluetoothStateMachine.events;
 
                 states.connectingState = new ConnectingState(bluetoothStateMachine);
-                discoveringServicesState = new DiscoveringServicesState();
+                states.discoveringServicesState = new DiscoveringServicesState();
                 State readingFirmawareState = new ReadingFirmwareState();
                 getInkeyState = new GetInkeyState();
                 getOutKeyV2State = new GetOutkeyV2State();
                 getOutKeyV3State = new GetOutkeyV3State();
                 sendingOutkeyState = new SendingOutkeyState();
 
-                State gattConnectOtherFail = new State("GATT connect other fail");
+                states.gattConnectOtherFail = new State("GATT connect other fail");
                 State notOnewheelFail = new State("Not Onewheel Fail");
                 State connectionLost = new State("Connection lost");
-                bluetoothStateMachine.states.gattCongestedState = new State("GATT Congested");
+                states.gattCongestedState = new State("GATT Congested");
 
-                discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheelFail, TransitionKind.External);
-                discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
+                states.discoveringServicesState.addHandler(TODO_NOT_ONEWHEEL, notOnewheelFail, TransitionKind.External);
+                states.discoveringServicesState.addHandler(READ_FIRMWARE_REVISION, readingFirmawareState, TransitionKind.External);
 
 
                 showTimeState = new ShowTimeState();
@@ -883,8 +879,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 showTimeState.addHandler(Event.ReveivedData.ID, showTimeState, TransitionKind.Internal, new OnReceivedData());
                 showTimeState.addHandler(Event.Timeout.ID, connectionLost, TransitionKind.External);
 
-                ConnectedState discoverSericesState = new ConnectedState(
-                        discoveringServicesState,
+                ConnectedState connectedState = new ConnectedState(
+                        states.discoveringServicesState,
                         readingFirmawareState,
                         showTimeState,
                         getInkeyState,
@@ -892,18 +888,18 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         getOutKeyV3State,
                         sendingOutkeyState,
 
-                        gattConnectOtherFail,
+                        states.gattConnectOtherFail,
                         bluetoothStateMachine.states.gattCongestedState,
                         notOnewheelFail,
                         connectionLost);
 
 
-                return discoverSericesState;
+                return connectedState;
             }
 
 
 
-            private class DiscoveringServicesState extends State {
+            public class DiscoveringServicesState extends State {
                 public DiscoveringServicesState() {
                     super("Discovering Services");
                     onEnter(new DiscoverServices());

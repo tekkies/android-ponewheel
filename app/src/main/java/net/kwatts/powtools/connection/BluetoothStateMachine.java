@@ -40,6 +40,8 @@ public class  BluetoothStateMachine {
         public State enabled;
         public State gattCongestedState;
         public ConnectingState connectingState;
+        public State gattConnectOtherFail;
+        public BluetoothUtilImpl.ConnectionStateMachine.DiscoverSericesStateBuilder.DiscoveringServicesState discoveringServicesState;
     }
 
     public class Events {
@@ -50,6 +52,7 @@ public class  BluetoothStateMachine {
         public static final String GATT_CONGESTED_ERROR = "GATT Congested Error";
         public static final String GATT_CONNECT_OTHER_ERROR = "Gatt Connect Other Error";
         public static final String ONEWHEEL_FOUND = "Device found";
+        public static final String GATT_CONNECTS = "Gatt Connects";
     }
 
     public BluetoothAdapter getBluetoothAdapter() {

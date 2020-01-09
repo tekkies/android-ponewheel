@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.le.ScanResult;
 
+import net.kwatts.powtools.PayloadUtil;
 import net.kwatts.powtools.connection.BluetoothStateMachine;
 import net.kwatts.powtools.util.Util;
 
@@ -12,7 +13,6 @@ import de.artcom.hsm.State;
 import timber.log.Timber;
 
 public class ConnectingState extends State {
-    private BluetoothGattCallback bluetoothGattCallback;
     private BluetoothStateMachine bluetoothStateMachine;
 
     public ConnectingState(BluetoothStateMachine bluetoothStateMachine) {
@@ -21,15 +21,13 @@ public class ConnectingState extends State {
         onEnter(new TryToConnect());
     }
 
-    public void inject(BluetoothGattCallback bluetoothGattCallback) {
-
-        this.bluetoothGattCallback = bluetoothGattCallback;
-    }
 
     private class TryToConnect extends Action {
         @Override
         public void run() {
-            ScanResult result = (ScanResult) mPayload.get(ScanResult.class.getSimpleName());
+            PayloadUtil payloadUtil = new PayloadUtil(mPayload);
+            ScanResult result = payloadUtil.getPayload(ScanResult.class);
+            BluetoothGattCallback bluetoothGattCallback = payloadUtil.getPayload(BluetoothGattCallback.class);
             BluetoothDevice device = result.getDevice();
             Timber.d("Address: %s, Name: %s", Util.coalesce(device.getAddress(), "NULL"), Util.coalesce(device.getName(), "NULL"));
             device.connectGatt(bluetoothStateMachine.context, false, bluetoothGattCallback);
