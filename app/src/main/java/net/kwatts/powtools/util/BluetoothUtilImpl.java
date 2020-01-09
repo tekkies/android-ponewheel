@@ -613,14 +613,14 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
 
 
-        private class ConnectedState extends Sub {
+        public class ConnectedState extends Sub {
             public static final String ID = "Connected";
 
             public ConnectedState(State initialState, State... states) {
                 super(ID, initialState, states);
             }
 
-            private final BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
+            public final BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
 
                 @Override
                 public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -879,7 +879,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 showTimeState.addHandler(Event.ReveivedData.ID, showTimeState, TransitionKind.Internal, new OnReceivedData());
                 showTimeState.addHandler(Event.Timeout.ID, connectionLost, TransitionKind.External);
 
-                ConnectedState connectedState = new ConnectedState(
+                bluetoothStateMachine.states.connectedState = new ConnectedState(
                         states.discoveringServicesState,
                         readingFirmawareState,
                         showTimeState,
@@ -894,7 +894,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         connectionLost);
 
 
-                return connectedState;
+                return states.connectedState;
             }
 
 

@@ -17,7 +17,7 @@ public class  BluetoothStateMachine {
 
     public final States states;
     public final Events events;
-    private final BluetoothUtilImpl bluetoothUtil;
+    public final BluetoothUtilImpl bluetoothUtil;
     public Context context;
 
     public BluetoothStateMachine(Context context, BluetoothUtilImpl bluetoothUtil) {
@@ -42,6 +42,7 @@ public class  BluetoothStateMachine {
         public ConnectingState connectingState;
         public State gattConnectOtherFail;
         public BluetoothUtilImpl.ConnectionStateMachine.DiscoverSericesStateBuilder.DiscoveringServicesState discoveringServicesState;
+        public BluetoothUtilImpl.ConnectionStateMachine.ConnectedState connectedState;
     }
 
     public class Events {

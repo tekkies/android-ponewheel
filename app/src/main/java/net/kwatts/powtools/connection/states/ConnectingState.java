@@ -27,7 +27,7 @@ public class ConnectingState extends State {
         public void run() {
             PayloadUtil payloadUtil = new PayloadUtil(mPayload);
             ScanResult result = payloadUtil.getPayload(ScanResult.class);
-            BluetoothGattCallback bluetoothGattCallback = payloadUtil.getPayload(BluetoothGattCallback.class);
+            BluetoothGattCallback bluetoothGattCallback = bluetoothStateMachine.states.connectedState.bluetoothGattCallback;
             BluetoothDevice device = result.getDevice();
             Timber.d("Address: %s, Name: %s", Util.coalesce(device.getAddress(), "NULL"), Util.coalesce(device.getName(), "NULL"));
             device.connectGatt(bluetoothStateMachine.context, false, bluetoothGattCallback);
