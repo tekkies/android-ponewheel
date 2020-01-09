@@ -597,7 +597,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             recoveryState = new RecoveryState();
 
             State discoverServices = new DiscoverSericesStateBuilder().build();
-            scanningState.addHandler(events.ONEWHEEL_FOUND, discoverServices, TransitionKind.External);
+            scanningState.addHandler(events.ONEWHEEL_FOUND, states.connectingState, TransitionKind.External);
 
             tbcState = new State(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC);
             discoverServices.addHandler(ConnectionEnabledStateMachineBuilder.AdapterEnabledStateMachineBuilder.TBC, tbcState, TransitionKind.External);

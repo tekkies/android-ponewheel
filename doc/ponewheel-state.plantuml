@@ -70,7 +70,7 @@ Connecting --> Discovering_Services : Gatt_Connects
 Connecting --> GATT_connect_other_fail : Gatt_Connect_Other_Error
 Connecting --> GATT_Congested : GATT_Congested_Error
 Recovery --> Scanning : Timeout
-Scanning --> Connected : Device_found
+Scanning --> Connecting : Device_found
 Adapter_Enabled --> Adapter_Disabled : Disable_Adapter
 Init --> Adapter_Enabled : Enable_Adapter
 Init --> Adapter_Disabled : Disable_Adapter
