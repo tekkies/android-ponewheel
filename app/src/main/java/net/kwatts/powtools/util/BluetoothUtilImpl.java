@@ -185,7 +185,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     }
 
     private void updateStateDiagram() {
-        mainActivity.updateStateMachine(diagramCache, "event");
+        mainActivity.updateStateMachine(diagramCache, String.format("RSSI=%d", bluetoothStateMachine.rssi));
     }
 
     private String getPlanTextUrl(String plantUml) {
@@ -654,6 +654,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                     }
                 }
 
+                @Override
+                public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+                    super.onReadRemoteRssi(gatt, rssi, status);
+                    bluetoothStateMachine.rssi = rssi;
+                }
 
                 //@SuppressLint("WakelockTimeout")
                 @Override
@@ -914,7 +919,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             }
 
             private void discoverGattServices(Map<String, Object> mPayload1) {
-                BluetoothGatt gatt = (BluetoothGatt) mPayload1.get(BluetoothGatt.class.getSimpleName());
+                BluetoothGatt gatt = new PayloadUtil(mPayload1).getPayload(BluetoothGatt.class);
+                gatt.readRemoteRssi();
                 gatt.discoverServices();
             }
 

@@ -19,6 +19,7 @@ public class  BluetoothStateMachine {
     public final Events events;
     public final BluetoothUtilImpl bluetoothUtil;
     public Context context;
+    public int rssi;
 
     public BluetoothStateMachine(Context context, BluetoothUtilImpl bluetoothUtil) {
         this.context = context;
