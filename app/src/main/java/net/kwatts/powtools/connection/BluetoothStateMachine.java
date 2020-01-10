@@ -4,6 +4,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 
+import com.google.common.base.Stopwatch;
+
 import net.kwatts.powtools.PayloadUtil;
 import net.kwatts.powtools.connection.states.ConnectingState;
 import net.kwatts.powtools.connection.states.DisabledState;
@@ -18,8 +20,9 @@ public class  BluetoothStateMachine {
     public final States states;
     public final Events events;
     public final BluetoothUtilImpl bluetoothUtil;
+    private Stopwatch stopwatch;
     public Context context;
-    public int rssi;
+    private int rssi;
 
     public BluetoothStateMachine(Context context, BluetoothUtilImpl bluetoothUtil) {
         this.context = context;
@@ -34,6 +37,22 @@ public class  BluetoothStateMachine {
 
     public void handleStateMachineEvent(String disableAdapter) {
         handleStateMachineEvent(disableAdapter, new PayloadUtil().build());
+    }
+
+    public void setRssi(int rssi) {
+        this.rssi = rssi;
+        if(stopwatch == null) {
+            stopwatch = new Stopwatch();
+        }
+        stopwatch.reset().start();
+    }
+
+    public String getRssiString() {
+        String rssi=null;
+        if(stopwatch != null && stopwatch.elapsedMillis() < 2) {
+            rssi = Integer.toString(this.rssi);
+        }
+        return rssi;
     }
 
     public class States {
