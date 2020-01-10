@@ -712,7 +712,15 @@ public class MainActivity extends AppCompatActivity implements
                 moment.setGpsLat(mOWDevice.getGpsLocation().getLatitude());
                 moment.setGpsLong(mOWDevice.getGpsLocation().getLongitude());
             }
+            LogMomentToSd(attributes, latestMoment);
         });
+    }
+
+    private void LogMomentToSd(List<Attribute> attributes, Date moment) {
+        if(App.momentLogger == null) {
+            App.momentLogger = new MomentLogger();
+        }
+        App.momentLogger.log(moment, attributes);
     }
 
     SwitchCompat mMasterLight;

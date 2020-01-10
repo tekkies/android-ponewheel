@@ -26,6 +26,7 @@ public class App extends Application {
 
     public static App INSTANCE = null;
     public static String PACKAGE_NAME;
+    public static MomentLogger momentLogger;
 
     private SharedPreferencesUtil sharedPreferencesUtil = null;
     PowerManager.WakeLock wakeLock;

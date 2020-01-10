@@ -536,19 +536,24 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             public State build() {
 
+                BluetoothStateMachine.States states = bluetoothStateMachine.states;
+                BluetoothStateMachine.Events events = bluetoothStateMachine.events;
+
                 InitState init = new InitState();
                 State adapterDisabledState = new AdapterDisabledState();
                 ConnectionStateMachine connectionStateMachine = new ConnectionStateMachine();
                 State adapterEnabledState = new Sub("Adapter Enabled", connectionStateMachine.createConnectionStateMachine());
 
-                adapterEnabledState.addHandler(bluetoothStateMachine.events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
 
-                adapterDisabledState.addHandler(bluetoothStateMachine.events.ENABLE_ADAPTER, adapterEnabledState, TransitionKind.External);
+                adapterEnabledState.addHandler(events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
+
+                adapterDisabledState.addHandler(events.ENABLE_ADAPTER, adapterEnabledState, TransitionKind.External);
 
 
 
-                init.addHandler(bluetoothStateMachine.events.ENABLE_ADAPTER, adapterEnabledState, TransitionKind.External);
-                init.addHandler(bluetoothStateMachine.events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
+                init.addHandler(events.ENABLE_ADAPTER, adapterEnabledState, TransitionKind.External);
+                init.addHandler(events.DISABLE_ADAPTER, adapterDisabledState, TransitionKind.External);
+
 
                 return new ConnectionEnabledState(bluetoothStateMachine, init, adapterDisabledState, adapterEnabledState);
             }
@@ -595,6 +600,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             scanningState = new ScanningState(bluetoothStateMachine);
             recoveryState = new RecoveryState();
+            states.gattConnectOtherFail = new State("GATT connect other fail");
 
             State discoverServices = new DiscoverSericesStateBuilder().build();
             scanningState.addHandler(events.ONEWHEEL_FOUND, states.connectingState, TransitionKind.External);
@@ -607,9 +613,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
             states.connectingState.addHandler(events.GATT_CONGESTED_ERROR, states.gattCongestedState, TransitionKind.External);
 
 
+            states.connectedState.addHandler(events.GATT_CONNECT_OTHER_ERROR, states.gattConnectOtherFail, TransitionKind.External);
+
             recoveryState.addHandler(Event.Timeout.ID, scanningState, TransitionKind.External);
 
-            return new StateMachine(scanningState, discoverServices, states.connectingState, recoveryState, tbcState);
+            return new StateMachine(scanningState, discoverServices, states.connectingState, recoveryState, states.gattConnectOtherFail, tbcState);
         }
 
 
@@ -639,13 +647,19 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                                 break;
 
                             default:
+
                                 handleStateMachineEvent(bluetoothStateMachine.events.GATT_CONNECT_OTHER_ERROR);
                                 //Saw this in logcat after crash as if the app was not closing connections
                                 //020-01-09 17:24:23.781 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
                                 //2020-01-09 17:24:26.430 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
                                 //2020-01-09 17:24:27.085 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
                                 //2020-01-09 17:24:27.820 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
-                                Toast.makeText(mContext, String.format("onConnectionStateChange(%04x, STATE_DISCONNECTED)", status), Toast.LENGTH_LONG).show();
+
+
+                                handler.post(() -> {
+                                    Toast.makeText(mContext, String.format("onConnectionStateChange(%04x, STATE_DISCONNECTED)", status), Toast.LENGTH_LONG).show();
+                                });
+
                                 break;
 
                         }
@@ -663,6 +677,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
                     super.onReadRemoteRssi(gatt, rssi, status);
                     bluetoothStateMachine.setRssi(rssi);
+
+                    Runnable runnable = () -> {
+                        gatt.readRemoteRssi();
+                    };
+                    handler.postDelayed(runnable, 500);
                 }
 
                 //@SuppressLint("WakelockTimeout")
@@ -865,7 +884,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                 getOutKeyV3State = new GetOutkeyV3State();
                 sendingOutkeyState = new SendingOutkeyState();
 
-                states.gattConnectOtherFail = new State("GATT connect other fail");
                 State notOnewheelFail = new State("Not Onewheel Fail");
                 State connectionLost = new State("Connection lost");
                 states.gattCongestedState = new State("GATT Congested");
@@ -898,7 +916,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                         getOutKeyV3State,
                         sendingOutkeyState,
 
-                        states.gattConnectOtherFail,
                         bluetoothStateMachine.states.gattCongestedState,
                         notOnewheelFail,
                         connectionLost);

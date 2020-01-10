@@ -49,8 +49,11 @@ public class  BluetoothStateMachine {
 
     public String getRssiString() {
         String rssi=null;
-        if(stopwatch != null && stopwatch.elapsedMillis() < 2) {
-            rssi = Integer.toString(this.rssi);
+        if(stopwatch != null) {
+            long elapsedMillis = stopwatch.elapsedMillis();
+            if (elapsedMillis < 2000) {
+                rssi = Integer.toString(this.rssi);
+            }
         }
         return rssi;
     }
