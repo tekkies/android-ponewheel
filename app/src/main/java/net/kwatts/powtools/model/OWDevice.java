@@ -699,6 +699,8 @@ gatttool --device=D0:39:72:BE:0A:32 --char-write-req --value=7500 --handle=0x004
         int count = 0;
         double volts = 0.0;
 
+        cellIdentifier = translatePintCellId(cellIdentifier);
+
         if(cellIdentifier < batteryVoltageCells.length && cellIdentifier >= 0) {
             int var3 = unsignedByte(incomingValue[1]);
             batteryVoltageCells[cellIdentifier] = (double)var3 / 50.0D;
@@ -729,6 +731,16 @@ gatttool --device=D0:39:72:BE:0A:32 --char-write-req --value=7500 --handle=0x004
             updateBatteryChanges |= Battery.setCells(volts);
         }
     }
+
+    private int translatePintCellId(int cellIdentifier) {
+        if(cellIdentifier == 240) {
+            cellIdentifier = 15;
+        } else {
+            cellIdentifier = (cellIdentifier-14)/16;
+        }
+        return cellIdentifier;
+    }
+
 
     public void processCurrentAmps(byte[] incomingValue, DeviceCharacteristic dc) {
         float incoming = ByteBuffer.wrap(incomingValue).getShort();

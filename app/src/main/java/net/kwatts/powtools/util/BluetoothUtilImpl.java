@@ -640,6 +640,11 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                             default:
                                 handleStateMachineEvent(bluetoothStateMachine.events.GATT_CONNECT_OTHER_ERROR);
+                                //Saw this in logcat after crash as if the app was not closing connections
+                                //020-01-09 17:24:23.781 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
+                                //2020-01-09 17:24:26.430 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
+                                //2020-01-09 17:24:27.085 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
+                                //2020-01-09 17:24:27.820 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
                                 Toast.makeText(mContext, String.format("onConnectionStateChange(%04x, STATE_DISCONNECTED)", status), Toast.LENGTH_LONG).show();
                                 break;
 
