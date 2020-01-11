@@ -733,8 +733,7 @@ public class MainActivity extends AppCompatActivity implements
     int frontBlinkCount = 0;
     int backBlinkCount = 0;
 
-    public void updateStateMachine(DiagramCache diagramCache, String message) {
-        ((TextView)findViewById(R.id.event)).setText(message);
+    public void updateStateMachine(DiagramCache diagramCache) {
         new DownloadImageTask((ImageView) findViewById(R.id.state_diagram)).execute(diagramCache);
     }
 

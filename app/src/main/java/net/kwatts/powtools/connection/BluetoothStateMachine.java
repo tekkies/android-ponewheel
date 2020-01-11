@@ -23,6 +23,7 @@ public class  BluetoothStateMachine {
     private Stopwatch stopwatch;
     public Context context;
     private int rssi;
+    private TransitionLogger transitionLogger;
 
     public BluetoothStateMachine(Context context, BluetoothUtilImpl bluetoothUtil) {
         this.context = context;
@@ -56,6 +57,13 @@ public class  BluetoothStateMachine {
             }
         }
         return rssi;
+    }
+
+    public void logTransitionToFile(String event, Map<String, Object> payload) {
+        if(transitionLogger == null) {
+            transitionLogger = new TransitionLogger();
+        }
+        transitionLogger.log(event, payload);
     }
 
     public class States {

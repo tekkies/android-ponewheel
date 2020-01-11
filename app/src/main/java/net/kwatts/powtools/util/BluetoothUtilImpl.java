@@ -185,7 +185,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
     }
 
     private void updateStateDiagram() {
-        mainActivity.updateStateMachine(diagramCache, String.format("RSSI=%s", bluetoothStateMachine.getRssiString()));
+        mainActivity.updateStateMachine(diagramCache);
     }
 
     private String getPlanTextUrl(String plantUml) {
@@ -210,6 +210,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         cancelStateTimeout();
         stateMachine.handleEvent(event, payload);
         logTransition(event);
+        bluetoothStateMachine.logTransitionToFile(event, payload);
         announceState();
         updateStateDiagram();
     }
@@ -632,7 +633,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 @Override
                 public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                    Timber.d("Bluetooth connection state change: address=" + gatt.getDevice().getAddress() + " status=" + status + " newState=" + newState);
+                    Timber.d(String.format("Bluetooth connection state change: address=%s status=%d(%04x) newState=%d", gatt.getDevice().getAddress(), status, status, newState));
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Timber.d("STATE_CONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
                         BluetoothUtilImpl.isOWFound.set("true");
