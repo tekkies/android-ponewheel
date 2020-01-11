@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PayloadUtil {
+    public static final String HINT = "HINT";
     private Map<String, Object> payload;
 
     public PayloadUtil() {
@@ -16,8 +17,12 @@ public class PayloadUtil {
 
     public <T> T getPayload(Class<T> type) {
         String key = type.getSimpleName();
-        T result = (T) payload.get(key);
+        T result = getPayload(key);
         return result;
+    }
+
+    public <T> T getPayload(String key) {
+        return (T) payload.get(key);
     }
 
     public PayloadUtil add(Object item) {

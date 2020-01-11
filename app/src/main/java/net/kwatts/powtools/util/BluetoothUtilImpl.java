@@ -633,7 +633,8 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 @Override
                 public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                    Timber.d(String.format("Bluetooth connection state change: address=%s status=%d(%04x) newState=%d", gatt.getDevice().getAddress(), status, status, newState));
+                    String message = String.format("Bluetooth connection state change: address=%s status=%d(%04x) newState=%d", gatt.getDevice().getAddress(), status, status, newState);
+                    Timber.d(message);
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Timber.d("STATE_CONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
                         BluetoothUtilImpl.isOWFound.set("true");
@@ -648,14 +649,12 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
                                 break;
 
                             default:
-
-                                handleStateMachineEvent(bluetoothStateMachine.events.GATT_CONNECT_OTHER_ERROR);
+                                handleStateMachineEvent(bluetoothStateMachine.events.GATT_CONNECT_OTHER_ERROR, new PayloadUtil().add(PayloadUtil.HINT, message).build());
                                 //Saw this in logcat after crash as if the app was not closing connections
                                 //020-01-09 17:24:23.781 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
                                 //2020-01-09 17:24:26.430 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
                                 //2020-01-09 17:24:27.085 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
                                 //2020-01-09 17:24:27.820 5168-5863/net.kwatts.powtools D/BluetoothGatt: cancelOpen() - device: 38:81:D7:34:B1:3D
-
 
                                 handler.post(() -> {
                                     Toast.makeText(mContext, String.format("onConnectionStateChange(%04x, STATE_DISCONNECTED)", status), Toast.LENGTH_LONG).show();

@@ -13,6 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
+import timber.log.Timber;
+
 class TransitionLogger {
 
     private final SimpleDateFormat dateOnlyFomat;
@@ -30,10 +32,11 @@ class TransitionLogger {
         String fileName = dateOnlyFomat.format(date)+".csv";
         File tripLogFile = new File(tripLogFolder.toString() + File.separator + fileName);
         boolean needsHeader = !tripLogFile.exists() || tripLogFile.length() == 0;
-
+        String payloadHint = new PayloadUtil(payload).getPayload(PayloadUtil.HINT);
         try(PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter(tripLogFile.toString(), true)))) {
             String timestamp = this.dateAndTimeFormat.format(date);
-            String message = String.format("%s %s %s", timestamp, event, payload.toString());
+            String message = String.format("%s %s %s", timestamp, event, payloadHint == null ? "" : payloadHint);
+            Timber.v(message);
             printWriter.println(message);
         }catch (IOException e) {
             System.err.println(e);
