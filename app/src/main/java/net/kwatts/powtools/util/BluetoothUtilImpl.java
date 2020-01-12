@@ -12,15 +12,13 @@ import android.content.Intent;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.speech.tts.TextToSpeech;
 import android.widget.Toast;
 import android.databinding.ObservableField;
-
-import com.google.common.base.Stopwatch;
 
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.connection.AdapterDisabledState;
 import net.kwatts.powtools.connection.BluetoothStateMachine;
+import net.kwatts.powtools.connection.StateAnnouncer;
 import net.kwatts.powtools.connection.states.ConnectingState;
 import net.kwatts.powtools.connection.states.ConnectionEnabledState;
 import net.kwatts.powtools.connection.states.DisabledState;
@@ -43,7 +41,6 @@ import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
@@ -59,7 +56,6 @@ import timber.log.Timber;
 import uk.co.tekkies.hsm.plantuml.PlantUmlBuilder;
 import uk.co.tekkies.hsm.plantuml.PlantUmlUrlEncoder;
 
-import static android.speech.tts.TextToSpeech.SUCCESS;
 import static net.kwatts.powtools.connection.BluetoothStateMachine.Events.GATT_CONNECTS;
 
 public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFilledCallback {
@@ -1141,50 +1137,4 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         return this;
     }
 
-    private class StateAnnouncer implements TextToSpeech.OnInitListener {
-
-        private final TextToSpeech textToSpeech;
-        private final Stopwatch lastUtteranceStopwatch;
-        private int utterance;
-        private int status;
-        private String lastUtternace ="";
-
-        public StateAnnouncer(Context context) {
-            textToSpeech = new TextToSpeech(context, this);
-            textToSpeech.setLanguage(Locale.US);
-            lastUtteranceStopwatch = new Stopwatch().reset().start();
-        }
-
-        public void announce(String utterance) {
-            if(status == SUCCESS) {
-                utterance = reduceRepetition(utterance);
-                if(utterance != null) {
-                    textToSpeech.speak(utterance, TextToSpeech.QUEUE_FLUSH, null, Integer.toString(this.utterance++));
-
-                }
-            }
-        }
-
-        private String reduceRepetition(String utterance) {
-            if (utterance == lastUtternace) {
-                if(lastUtteranceStopwatch.elapsedMillis() < 5000) {
-                    utterance = null;
-                } else {
-                    utterance = "Still "+utterance;
-                }
-            } else {
-                lastUtternace = utterance;
-            }
-            if(utterance != null) {
-                lastUtteranceStopwatch.reset().start();
-            }
-            return utterance;
-        }
-
-
-        @Override
-        public void onInit(int status) {
-            this.status = status;
-        }
-    }
 }
