@@ -18,6 +18,7 @@ import android.databinding.ObservableField;
 import net.kwatts.powtools.App;
 import net.kwatts.powtools.connection.AdapterDisabledState;
 import net.kwatts.powtools.connection.BluetoothStateMachine;
+import net.kwatts.powtools.connection.RecoveryState;
 import net.kwatts.powtools.connection.StateAnnouncer;
 import net.kwatts.powtools.connection.states.ConnectingState;
 import net.kwatts.powtools.connection.states.ConnectionEnabledState;
@@ -567,7 +568,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
     }
 
-    private void setStateTimeout(String event, int ms) {
+    public void setStateTimeout(String event, int ms) {
         cancelStateTimeout();
         timeoutEventRunnable = () -> {
             handleStateMachineEvent(event);
@@ -596,7 +597,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
 
             scanningState = new ScanningState(bluetoothStateMachine);
-            recoveryState = new RecoveryState();
+            recoveryState = new RecoveryState(BluetoothUtilImpl.this);
             states.gattConnectOtherFail = new State("GATT connect other fail");
 
             State discoverServices = new DiscoverSericesStateBuilder().build();
@@ -629,7 +630,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
                 @Override
                 public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                    String message = String.format("Bluetooth connection state change: address=%s status=%d(%04x) newState=%d", gatt.getDevice().getAddress(), status, status, newState);
+                    String message = String.format("Bluetooth connection state change: address=%s status=%d(0x%04x) newState=%d", gatt.getDevice().getAddress(), status, status, newState);
                     Timber.d(message);
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Timber.d("STATE_CONNECTED: name=" + gatt.getDevice().getName() + " address=" + gatt.getDevice().getAddress());
@@ -938,7 +939,7 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
 
             private void discoverGattServices(Map<String, Object> mPayload1) {
                 BluetoothGatt gatt = new PayloadUtil(mPayload1).getPayload(BluetoothGatt.class);
-                gatt.readRemoteRssi();
+                //gatt.readRemoteRssi();
                 gatt.discoverServices();
             }
 
@@ -1118,19 +1119,6 @@ public class BluetoothUtilImpl implements BluetoothUtil, DiagramCache.CacheFille
         }
 
 
-        private class RecoveryState extends State {
-            public RecoveryState() {
-                super("Recovery");
-                onEnter(new Wait());
-            }
-
-            private class Wait extends Action {
-                @Override
-                public void run() {
-                    setStateTimeout(Event.Timeout.ID, 2000);
-                }
-            }
-        }
     }
 
     private BluetoothUtilImpl getBluetoothUtil() {
